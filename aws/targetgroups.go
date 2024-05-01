@@ -18,7 +18,7 @@ type describeTargetGroupsOutput struct {
 }
 
 func DescribeTargetGroups() ([]TargetGroup, error) {
-	options := []TargetGroup{}
+	result := []TargetGroup{}
 	var args []string
 	args = append(args, "elbv2", "describe-target-groups", "--output", "json", "--no-paginate")
 	log.Debug(args)
@@ -27,20 +27,20 @@ func DescribeTargetGroups() ([]TargetGroup, error) {
 		for i := 1; i <= 10; i += 1 {
 			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/dummy-" + strconv.Itoa(i) + "/73e2d6bc24d8a067"
 			name := "dummy-" + strconv.Itoa(i)
-			options = append(options, TargetGroup{TargetGroupArn: arn, TargetGroupName: name})
+			result = append(result, TargetGroup{TargetGroupArn: arn, TargetGroupName: name})
 		}
-		return options, nil
+		return result, nil
 	}
 
 	var resp describeTargetGroupsOutput
 	_, err := execAWS(args, &resp)
 	if err != nil {
-		return options, err
+		return result, err
 	}
 
-	options = resp.TargetGroups
+	result = resp.TargetGroups
 
-	return options, nil
+	return result, nil
 }
 
 func CreateTargetGroup(filepath string) (TargetGroup, error) {

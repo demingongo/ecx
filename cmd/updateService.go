@@ -16,7 +16,7 @@ var updateServiceCmd = &cobra.Command{
 	Long: `The command updates an ECS service.
 
 It helps you:
-	selecting new tags for containers in the task(s),
+	selecting new images for containers in the task(s),
 	creating new revisions of the task definition(s),
 	updating the service with the new revisions.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -38,7 +38,8 @@ func init() {
 	// updateServiceCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	updateServiceCmd.PersistentFlags().String("cluster", "", "cluster name")
 	updateServiceCmd.PersistentFlags().String("service", "", "ecs service arn")
-	updateServiceCmd.MarkFlagsMutuallyExclusive("cluster", "service")
+	updateServiceCmd.MarkPersistentFlagRequired("cluster")
+	//updateServiceCmd.MarkFlagsMutuallyExclusive("cluster", "service")
 
 	viper.BindPFlag("cluster", updateServiceCmd.PersistentFlags().Lookup("cluster"))
 	viper.BindPFlag("service", updateServiceCmd.PersistentFlags().Lookup("service"))

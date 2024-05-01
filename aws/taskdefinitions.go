@@ -27,7 +27,7 @@ type TaskDefinition struct {
 	ContainerDefinitions []ContainerDefinition `json:"containerDefinitions"`
 }
 
-type describeTaskDefinitionResponse struct {
+type describeTaskDefinitionOutput struct {
 	TaskDefinition TaskDefinition `json:"taskDefinition"`
 }
 
@@ -35,6 +35,7 @@ func DescribeTaskDefinition(taskDefinitionArn string) (TaskDefinition, error) {
 	result := TaskDefinition{}
 	var args []string
 	args = append(args, "ecs", "describe-task-definition", "--output", "json", "--no-paginate", "--task-definition", taskDefinitionArn)
+	args = append(args, "--query", "{taskDefinitionArn: taskDefinition.taskDefinitionArn, containerDefinitions: taskDefinition.containerDefinitions[*].{name: name, image: image, portMappings: portMappings}}")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(2)
@@ -57,7 +58,7 @@ func DescribeTaskDefinition(taskDefinitionArn string) (TaskDefinition, error) {
 		return result, nil
 	}
 
-	var resp describeTaskDefinitionResponse
+	var resp describeTaskDefinitionOutput
 	_, err := execAWS(args, &resp)
 	if err != nil {
 		return result, err

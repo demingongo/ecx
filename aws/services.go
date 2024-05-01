@@ -14,6 +14,17 @@ type ServiceLoadBalancer struct {
 	ContainerPort  int
 }
 
+type Deployment struct {
+	Id             string `json:"id"`
+	TaskDefinition string `json:"taskDefinition"`
+}
+
+type Service struct {
+	ServiceArn  string       `json:"serviceArn"`
+	ServiceName string       `json:"serviceName"`
+	Deployments []Deployment `json:"deployments"`
+}
+
 func CreateService(filepath string, loadBalancer ServiceLoadBalancer) (string, error) {
 	var args []string
 	args = append(args, "ecs", "create-service", "--output", "json", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
@@ -33,4 +44,41 @@ func CreateService(filepath string, loadBalancer ServiceLoadBalancer) (string, e
 	stdout, err := execAWS(args, &resp)
 
 	return string(stdout), err
+}
+
+func DescribeService(cluster string, serviceArn string) (Service, error) {
+	var result Service
+	var args []string
+	args = append(args, "ecs", "describe-services", "--output", "json", "--cluster", cluster, "--no-paginate", "--services", serviceArn)
+	args = append(args, "--query", "services[0].{serviceArn: serviceArn, serviceName: serviceName, deployments: deployments[*].{id: id, taskDefinition: taskDefinition}}")
+
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return Service{}, nil
+	}
+
+	_, err := execAWS(args, &result)
+
+	return result, err
+}
+
+func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
+	var result []Service
+	var args []string
+	args = append(args, "ecs", "describe-services", "--output", "json", "--cluster", cluster, "--no-paginate")
+	if serviceArn != "" {
+		args = append(args, "--services", serviceArn)
+	}
+	args = append(args, "--query", "services[*].{serviceArn: serviceArn, serviceName: serviceName, deployments: deployments[*].{id: id, taskDefinition: taskDefinition}}")
+
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return []Service{}, nil
+	}
+
+	_, err := execAWS(args, &result)
+
+	return result, err
 }
