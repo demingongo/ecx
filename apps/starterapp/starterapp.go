@@ -312,6 +312,10 @@ func process(logger *log.Logger) {
 
 func Run() {
 
+	if viper.GetBool("colors") {
+		theme = huh.ThemeDracula()
+	}
+
 	logger := createLogger()
 
 	info = generateInfo()

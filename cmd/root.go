@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 demingongo
 */
 package cmd
 
@@ -57,8 +57,10 @@ func init() {
 	// when this action is called directly.
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 	rootCmd.PersistentFlags().Bool("dummy", false, "dummy run (no aws call)")
+	rootCmd.PersistentFlags().BoolP("colors", "c", false, "colorful forms")
 
 	viper.BindPFlag("dummy", rootCmd.PersistentFlags().Lookup("dummy"))
+	viper.BindPFlag("colors", rootCmd.PersistentFlags().Lookup("colors"))
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.SetDefault("dummy", false)
 	viper.SetDefault("verbose", false)
