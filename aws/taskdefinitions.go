@@ -14,11 +14,11 @@ type ContainerPortMapping struct {
 
 type PortMapping struct {
 	ContainerPort      int    `json:"containerPort"`
-	HostPort           int    `json:"hostPort"`
 	Protocol           string `json:"protocol"`
 	Name               string `json:"name"`
-	AppProtocol        string `json:"appProtocol"`
-	ContainerPortRange string `json:"containerPortRange"`
+	HostPort           int    `json:"hostPort"`
+	AppProtocol        string `json:"appProtocol,omitempty"`
+	ContainerPortRange string `json:"containerPortRange,omitempty"`
 }
 
 type ContainerDefinition struct {
@@ -33,39 +33,39 @@ type ContainerDefinition struct {
 	// not caring about the following props for now, but need to
 	// define them to register a new task definition revision from one revision
 
-	Links                  []any `json:"links"`
-	RepositoryCredentials  any   `json:"repositoryCredentials"`
-	EntryPoint             []any `json:"entryPoint"`
-	Command                []any `json:"command"`
-	Environment            []any `json:"environment"`
-	EnvironmentFiles       []any `json:"environmentFiles"`
-	MountPoints            []any `json:"mountPoints"`
-	VolumesFrom            []any `json:"volumesFrom"`
-	LinuxParameters        any   `json:"linuxParameters"`
-	Secrets                []any `json:"secrets"`
-	DependsOn              []any `json:"dependsOn"`
-	StartTimeout           any   `json:"startTimeout"`
-	StopTimeout            any   `json:"stopTimeout"`
-	Hostname               any   `json:"hostname"`
-	User                   any   `json:"user"`
-	WorkingDirectory       any   `json:"workingDirectory"`
-	DisableNetworking      bool  `json:"disableNetworking"`
-	Privileged             bool  `json:"privileged"`
-	ReadonlyRootFilesystem bool  `json:"readonlyRootFilesystem"`
-	DnsServers             []any `json:"dnsServers"`
-	DnsSearchDomains       []any `json:"dnsSearchDomains"`
-	ExtraHosts             []any `json:"extraHosts"`
-	DockerSecurityOptions  []any `json:"dockerSecurityOptions"`
-	Interactive            bool  `json:"interactive"`
-	PseudoTerminal         bool  `json:"pseudoTerminal"`
-	DockerLabels           any   `json:"dockerLabels"`
-	Ulimits                []any `json:"ulimits"`
-	LogConfiguration       any   `json:"logConfiguration"`
-	HealthCheck            any   `json:"healthCheck"`
-	SystemControls         []any `json:"systemControls"`
-	ResourceRequirements   []any `json:"resourceRequirements"`
-	FirelensConfiguration  any   `json:"firelensConfiguration"`
-	CredentialSpecs        []any `json:"credentialSpecs"`
+	Links                  []any `json:"links,omitempty"`
+	RepositoryCredentials  any   `json:"repositoryCredentials,omitempty"`
+	EntryPoint             []any `json:"entryPoint,omitempty"`
+	Command                []any `json:"command,omitempty"`
+	Environment            []any `json:"environment,omitempty"`
+	EnvironmentFiles       []any `json:"environmentFiles,omitempty"`
+	MountPoints            []any `json:"mountPoints,omitempty"`
+	VolumesFrom            []any `json:"volumesFrom,omitempty"`
+	LinuxParameters        any   `json:"linuxParameters,omitempty"`
+	Secrets                []any `json:"secrets,omitempty"`
+	DependsOn              []any `json:"dependsOn,omitempty"`
+	StartTimeout           any   `json:"startTimeout,omitempty"`
+	StopTimeout            any   `json:"stopTimeout,omitempty"`
+	Hostname               any   `json:"hostname,omitempty"`
+	User                   any   `json:"user,omitempty"`
+	WorkingDirectory       any   `json:"workingDirectory,omitempty"`
+	DisableNetworking      bool  `json:"disableNetworking,omitempty"`
+	Privileged             bool  `json:"privileged,omitempty"`
+	ReadonlyRootFilesystem bool  `json:"readonlyRootFilesystem,omitempty"`
+	DnsServers             []any `json:"dnsServers,omitempty"`
+	DnsSearchDomains       []any `json:"dnsSearchDomains,omitempty"`
+	ExtraHosts             []any `json:"extraHosts,omitempty"`
+	DockerSecurityOptions  []any `json:"dockerSecurityOptions,omitempty"`
+	Interactive            bool  `json:"interactive,omitempty"`
+	PseudoTerminal         bool  `json:"pseudoTerminal,omitempty"`
+	DockerLabels           any   `json:"dockerLabels,omitempty"`
+	Ulimits                []any `json:"ulimits,omitempty"`
+	LogConfiguration       any   `json:"logConfiguration,omitempty"`
+	HealthCheck            any   `json:"healthCheck,omitempty"`
+	SystemControls         []any `json:"systemControls,omitempty"`
+	ResourceRequirements   []any `json:"resourceRequirements,omitempty"`
+	FirelensConfiguration  any   `json:"firelensConfiguration,omitempty"`
+	CredentialSpecs        []any `json:"credentialSpecs,omitempty"`
 }
 
 type TaskDefinition struct {
@@ -74,7 +74,7 @@ type TaskDefinition struct {
 	TaskRoleArn          string                `json:"taskRoleArn"`
 	ExecutionRoleArn     string                `json:"executionRoleArn"`
 	NetworkMode          string                `json:"networkMode"`
-	ContainerDefinitions []ContainerDefinition `json:"containerDefinitions"`
+	ContainerDefinitions []ContainerDefinition `json:"containerDefinitions,omitempty"`
 
 	// not caring about the following props for now, but need to
 	// define them to register a new task definition revision from one revision
@@ -107,7 +107,7 @@ func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 			ContainerDefinitions: []ContainerDefinition{
 				{
 					Name:  "dmz-web",
-					Image: "xxx/repository-dmz-web:tag",
+					Image: "xxx.dkr.ecr.us-west-2.amazonaws.com/repository-dummy:tag",
 					PortMappings: []PortMapping{
 						{
 							ContainerPort: 8080,
@@ -160,4 +160,19 @@ func ExtractFamilyFromRevision(taskdefArn string) string {
 		result = result[:revisionPos]
 	}
 	return result
+}
+
+func RegisterTaskDefinition(inputJson string) (string, error) {
+	var args []string
+	args = append(args, "ecs", "register-task-definition", "--cli-input-json", inputJson)
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return strings.Join(args, " "), nil
+	}
+
+	var resp any
+	stdout, err := execAWS(args, &resp)
+
+	return string(stdout), err
 }
