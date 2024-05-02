@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/log"
@@ -162,9 +163,9 @@ func ExtractFamilyFromRevision(taskdefArn string) string {
 	return result
 }
 
-func RegisterTaskDefinition(inputJson string) (string, error) {
+func RegisterTaskDefinition(filepath string) (string, error) {
 	var args []string
-	args = append(args, "ecs", "register-task-definition", "--cli-input-json", inputJson)
+	args = append(args, "ecs", "register-task-definition", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)

@@ -88,7 +88,7 @@ func Run() {
 	fmt.Println(string(jsonByte))
 
 	dir, _ := os.Getwd()
-	f, err := os.Create(dir + "/task_def.json")
+	f, err := os.Create(dir + "/.task_def.json")
 	if err != nil {
 		log.Fatal("os.Create", err)
 	}
@@ -98,10 +98,10 @@ func Run() {
 		log.Fatal("os.File.WriteString", err)
 	}
 
-	//_, err = aws.RegisterTaskDefinition(string(jsonByte))
-	//if err != nil {
-	//	log.Fatal("RegisterTaskDefinition", err)
-	//}
+	_, err = aws.RegisterTaskDefinition(dir + "/.task_def.json")
+	if err != nil {
+		log.Fatal("RegisterTaskDefinition", err)
+	}
 
 	fmt.Println("Done")
 }

@@ -4,6 +4,7 @@ Copyright © 2024 demingongo
 package cmd
 
 import (
+	"github.com/charmbracelet/log"
 	"github.com/demingongo/ecx/apps/updateserviceapp"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,6 +21,9 @@ It helps you:
 	creating new revisions of the task definition(s),
 	updating the service with the new revisions.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if viper.GetBool("verbose") {
+			log.SetLevel(log.DebugLevel)
+		}
 		updateserviceapp.Run()
 	},
 }
