@@ -65,9 +65,26 @@ func Run() {
 		}
 	}
 
-	log.Info(config.taskDefinition.ContainerDefinitions)
+	log.Info(fmt.Sprintf("TaskDefinitionArn: %s", config.taskDefinition.TaskDefinitionArn))
 
-	jsonByte, _ := json.Marshal(config.taskDefinition)
+	// marshal to []byte
+	var jsonByte []byte
+	var err error
+	var output map[string]interface{}
+	if jsonByte, err = json.Marshal(config.taskDefinition); err != nil {
+		log.Fatal("json.Marshal(taskDefinition)", err)
+	}
+	// unmarshal to map[string]interface{}
+	if err := json.Unmarshal(jsonByte, &output); err != nil {
+		log.Fatal("json.Unmarshal", err)
+	}
+	// remove "taskDefinitionArn" key
+	delete(output, "taskDefinitionArn")
+	// marshal the updated json to []byte
+	if jsonByte, err = json.Marshal(output); err != nil {
+		log.Fatal("json.Marshal(output)", err)
+	}
+
 	fmt.Println(string(jsonByte))
 
 	dir, _ := os.Getwd()
@@ -81,10 +98,10 @@ func Run() {
 		log.Fatal("os.File.WriteString", err)
 	}
 
-	_, err = aws.RegisterTaskDefinition(string(jsonByte))
-	if err != nil {
-		log.Fatal("RegisterTaskDefinition", err)
-	}
+	//_, err = aws.RegisterTaskDefinition(string(jsonByte))
+	//if err != nil {
+	//	log.Fatal("RegisterTaskDefinition", err)
+	//}
 
 	fmt.Println("Done")
 }
