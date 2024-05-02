@@ -24,9 +24,9 @@ type PortMapping struct {
 type ContainerDefinition struct {
 	Name              string        `json:"name"`
 	Image             string        `json:"image"`
-	Cpu               int           `json:"cpu"`
-	Memory            int           `json:"memory"`
-	MemoryReservation int           `json:"memoryReservation"`
+	Cpu               int           `json:"cpu,omitempty"`
+	Memory            int           `json:"memory,omitempty"`
+	MemoryReservation int           `json:"memoryReservation,omitempty"`
 	PortMappings      []PortMapping `json:"portMappings"`
 	Essential         bool          `json:"essential"`
 
