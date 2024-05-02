@@ -267,9 +267,3 @@ func NewFilepickerModel(config FilepickerModelConfig) FilepickerModel {
 
 	return m
 }
-
-func NewFilepickerModelProgram(config FilepickerModelConfig) *tea.Program {
-	m := NewFilepickerModel(config)
-
-	return tea.NewProgram(&m)
-}
