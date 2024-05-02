@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/log"
@@ -34,11 +33,12 @@ type ContainerDefinition struct {
 	// not caring about the following props for now, but need to
 	// define them to register a new task definition revision from one revision
 
-	Links                  []any `json:"links,omitempty"`
-	RepositoryCredentials  any   `json:"repositoryCredentials,omitempty"`
-	EntryPoint             []any `json:"entryPoint,omitempty"`
-	Command                []any `json:"command,omitempty"`
-	Environment            []any `json:"environment,omitempty"`
+	Links                 []any `json:"links,omitempty"`
+	RepositoryCredentials any   `json:"repositoryCredentials,omitempty"`
+	EntryPoint            []any `json:"entryPoint,omitempty"`
+	Command               []any `json:"command,omitempty"`
+	Environment           []any `json:"environment,omitempty"`
+	// @TODO check if it's registered
 	EnvironmentFiles       []any `json:"environmentFiles,omitempty"`
 	MountPoints            []any `json:"mountPoints,omitempty"`
 	VolumesFrom            []any `json:"volumesFrom,omitempty"`
@@ -60,13 +60,14 @@ type ContainerDefinition struct {
 	Interactive            bool  `json:"interactive,omitempty"`
 	PseudoTerminal         bool  `json:"pseudoTerminal,omitempty"`
 	DockerLabels           any   `json:"dockerLabels,omitempty"`
-	Ulimits                []any `json:"ulimits,omitempty"`
-	LogConfiguration       any   `json:"logConfiguration,omitempty"`
-	HealthCheck            any   `json:"healthCheck,omitempty"`
-	SystemControls         []any `json:"systemControls,omitempty"`
-	ResourceRequirements   []any `json:"resourceRequirements,omitempty"`
-	FirelensConfiguration  any   `json:"firelensConfiguration,omitempty"`
-	CredentialSpecs        []any `json:"credentialSpecs,omitempty"`
+	// @TODO check if it's registered
+	Ulimits               []any `json:"ulimits,omitempty"`
+	LogConfiguration      any   `json:"logConfiguration,omitempty"`
+	HealthCheck           any   `json:"healthCheck,omitempty"`
+	SystemControls        []any `json:"systemControls,omitempty"`
+	ResourceRequirements  []any `json:"resourceRequirements,omitempty"`
+	FirelensConfiguration any   `json:"firelensConfiguration,omitempty"`
+	CredentialSpecs       []any `json:"credentialSpecs,omitempty"`
 }
 
 type TaskDefinition struct {
@@ -80,25 +81,25 @@ type TaskDefinition struct {
 	// not caring about the following props for now, but need to
 	// define them to register a new task definition revision from one revision
 
-	Volumes               []any `json:"volumes,omitempty"`
-	PlacementConstraints  []any `json:"placementConstraints,omitempty"`
-	RequiresCompabilities []any `json:"requiresCompabilities,omitempty"`
-	Cpu                   any   `json:"cpu,omitempty"`
-	Memory                any   `json:"memory,omitempty"`
-	Tags                  []any `json:"tags,omitempty"`
-	PidMode               any   `json:"pidMode,omitempty"`
-	IpcMode               any   `json:"ipcMode,omitempty"`
-	ProxyConfiguration    any   `json:"proxyConfiguration,omitempty"`
-	InferenceAccelerators []any `json:"inferenceAccelerators,omitempty"`
-	EphemeralStorage      any   `json:"ephemeralStorage,omitempty"`
-	RuntimePlatform       any   `json:"runtimePlatform,omitempty"`
+	Volumes                 []any `json:"volumes,omitempty"`
+	PlacementConstraints    []any `json:"placementConstraints,omitempty"`
+	RequiresCompatibilities []any `json:"requiresCompatibilities,omitempty"`
+	Cpu                     any   `json:"cpu,omitempty"`
+	Memory                  any   `json:"memory,omitempty"`
+	Tags                    []any `json:"tags,omitempty"`
+	PidMode                 any   `json:"pidMode,omitempty"`
+	IpcMode                 any   `json:"ipcMode,omitempty"`
+	ProxyConfiguration      any   `json:"proxyConfiguration,omitempty"`
+	InferenceAccelerators   []any `json:"inferenceAccelerators,omitempty"`
+	EphemeralStorage        any   `json:"ephemeralStorage,omitempty"`
+	RuntimePlatform         any   `json:"runtimePlatform,omitempty"`
 }
 
 // "taskDefinition" argument is the family, family:revision or full ARN
 func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 	result := TaskDefinition{}
 	var args []string
-	args = append(args, "ecs", "describe-task-definition", "--output", "json", "--no-paginate", "--task-definition", taskDefinition)
+	args = append(args, "ecs", "describe-task-definition", "--output", "json", "--no-paginate", "--include", "TAGS", "--task-definition", taskDefinition)
 	args = append(args, "--query", "taskDefinition")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
@@ -163,9 +164,9 @@ func ExtractFamilyFromRevision(taskdefArn string) string {
 	return result
 }
 
-func RegisterTaskDefinition(filepath string) (string, error) {
+func RegisterTaskDefinition(inputJson string) (string, error) {
 	var args []string
-	args = append(args, "ecs", "register-task-definition", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
+	args = append(args, "ecs", "register-task-definition", "--cli-input-json", inputJson)
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)
