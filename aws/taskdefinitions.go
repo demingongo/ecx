@@ -98,7 +98,7 @@ func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 	result := TaskDefinition{}
 	var args []string
 	args = append(args, "ecs", "describe-task-definition", "--output", "json", "--no-paginate", "--task-definition", taskDefinition)
-	args = append(args, "--query", "{family: taskDefinition.family, taskDefinitionArn: taskDefinition.taskDefinitionArn, containerDefinitions: taskDefinition.containerDefinitions[*].{name: name, image: image, portMappings: portMappings}}")
+	args = append(args, "--query", "taskDefinition")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(2)

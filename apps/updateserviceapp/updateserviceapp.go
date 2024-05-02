@@ -68,10 +68,18 @@ func Run() {
 	log.Info(config.taskDefinition.ContainerDefinitions)
 
 	dir, _ := os.Getwd()
-	file, _ := os.OpenFile(dir+"/task_def.json", os.O_CREATE, os.ModePerm)
-	defer file.Close()
-	encoder := json.NewEncoder(file)
-	encoder.Encode(config.taskDefinition)
+	jsonByte, _ := json.Marshal(config.taskDefinition)
+	fmt.Println(string(jsonByte))
+
+	f, err := os.Create(dir + "/task_def.json")
+	if err != nil {
+		log.Fatal("os.Create", err)
+	}
+	defer f.Close()
+	_, err = f.Write(jsonByte)
+	if err != nil {
+		log.Fatal("os.File.WriteString", err)
+	}
 
 	fmt.Println("Done")
 }
