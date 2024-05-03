@@ -61,3 +61,20 @@ func ExtractNameFromURI(ecrRepositoryUri string) string {
 	}
 	return result
 }
+
+func ChangeImageTagFromURI(ecrRepositoryUri string, newTag string) string {
+	var result string
+	result1 := strings.Index(ecrRepositoryUri, ".ecr.")
+	result2 := strings.Index(ecrRepositoryUri, ".amazonaws.")
+	result3 := strings.Index(ecrRepositoryUri, "/")
+	if result1 > 0 && result1 < result2 && result2 < result3 {
+		dns := ecrRepositoryUri[:result3+1]
+		result = ecrRepositoryUri[result3+1:]
+		imageTagIdx := strings.Index(result, ":")
+		if imageTagIdx > -1 {
+			result = result[:imageTagIdx]
+		}
+		result = dns + result + ":" + newTag
+	}
+	return result
+}

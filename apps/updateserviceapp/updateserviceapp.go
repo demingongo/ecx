@@ -12,15 +12,56 @@ import (
 	"github.com/spf13/viper"
 )
 
+type containerUpdate struct {
+	Name     string
+	OldImage string
+	NewImage string
+}
+
 type Config struct {
 	cluster        string
 	service        aws.Service
 	taskDefinition aws.TaskDefinition
 
+	containersToUpdate []containerUpdate
+
 	taskDefinitionInfoDescription string
 
 	serviceLogo        string
 	taskDefinitionLogo string
+}
+
+func (m Config) CurrentTaskDefinitionArn() string {
+	var result string
+	if len(m.service.Deployments) > 0 {
+		result = m.service.Deployments[0].TaskDefinition
+	}
+	return result
+}
+
+func (m Config) CurrentTaskDefinitionFamily() string {
+	return aws.ExtractFamilyFromRevision(m.CurrentTaskDefinitionArn())
+}
+
+func (m Config) findContainerDefinition(containerName string) *aws.ContainerDefinition {
+	var result *aws.ContainerDefinition
+	if len(m.taskDefinition.ContainerDefinitions) > 0 {
+		for i, containerDef := range (&m.taskDefinition).ContainerDefinitions {
+			if containerDef.Name == containerName {
+				result = &(&m.taskDefinition).ContainerDefinitions[i]
+				break
+			}
+		}
+	}
+	return result
+}
+
+func (m Config) addContainerToUpdate(containerName string, oldImage string, newImage string) {
+	config.containersToUpdate = append(config.containersToUpdate, containerUpdate{
+		Name:     containerName,
+		OldImage: oldImage,
+		NewImage: newImage,
+	})
 }
 
 var (
@@ -30,6 +71,8 @@ var (
 
 	subtle  = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	special = lipgloss.AdaptiveColor{Light: "230", Dark: "#010102"}
+
+	notifText = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render
 
 	subtleText = lipgloss.NewStyle().Foreground(subtle).Render
 
@@ -57,18 +100,6 @@ var (
 			BorderBottom(true).
 			Width(globals.InfoWidth)
 )
-
-func (m Config) CurrentTaskDefinitionArn() string {
-	var result string
-	if len(m.service.Deployments) > 0 {
-		result = m.service.Deployments[0].TaskDefinition
-	}
-	return result
-}
-
-func (m Config) CurrentTaskDefinitionFamily() string {
-	return aws.ExtractFamilyFromRevision(m.CurrentTaskDefinitionArn())
-}
 
 func removeJSONKey(taskDefinition aws.TaskDefinition, key string) ([]byte, error) {
 	// marshal to []byte
@@ -132,7 +163,64 @@ func generateInfo() string {
 		taskDefinitionInfo,
 	)
 
-	return infoStyle.Render(content)
+	infoWidth := globals.InfoWidth
+
+	if len(config.containersToUpdate) > 0 {
+		var containersInfo = []string{
+			content,
+			subtitleStyle.Render("Containers "),
+		}
+		for _, ctu := range config.containersToUpdate {
+			containersInfo = append(containersInfo, "・"+ctu.OldImage+notifText(" » "))
+			containersInfo = append(containersInfo, notifText(ctu.NewImage))
+		}
+		content = lipgloss.JoinVertical(lipgloss.Left,
+			containersInfo...,
+		)
+
+		infoWidth = globals.InfoWidth * 2
+	}
+
+	return infoStyle.Width(infoWidth).Render(content)
+}
+
+func selectImage(containerName string, ecrRepositoryName string, images []aws.Image) {
+	form := runFormSelectImage(
+		fmt.Sprintf("Container \"%s\", repository \"%s\":", containerName, ecrRepositoryName),
+		images,
+	)
+	if form.State == huh.StateCompleted {
+		if image := form.Get("image").(aws.Image); image.ImageTag != "" {
+			containerDefinition := config.findContainerDefinition(containerName)
+			newURI := aws.ChangeImageTagFromURI(containerDefinition.Image, image.ImageTag)
+			if newURI != "" {
+				config.addContainerToUpdate(
+					containerDefinition.Name,
+					containerDefinition.Image,
+					newURI,
+				)
+				containerDefinition.Image = newURI
+			}
+		}
+	}
+}
+
+func inputImage(containerName string, currentImage string) {
+	form := runFormInputImage(
+		fmt.Sprintf("Container \"%s\":", containerName),
+		currentImage,
+	)
+	if newURI := form.GetString("image"); form.State == huh.StateCompleted && newURI != "" {
+		containerDefinition := config.findContainerDefinition(containerName)
+		if containerDefinition.Name != "" {
+			config.addContainerToUpdate(
+				containerDefinition.Name,
+				containerDefinition.Image,
+				newURI,
+			)
+			containerDefinition.Image = newURI
+		}
+	}
 }
 
 func Run() {
@@ -201,10 +289,34 @@ func Run() {
 			}
 
 			if len(containersList) > 0 {
+				for _, container := range containersList {
+					ecrRepositoryName := aws.ExtractNameFromURI(container.Image)
+					if ecrRepositoryName != "" {
+						images, err := aws.ListImages(ecrRepositoryName)
+						if err != nil {
+							log.Error(err)
+						}
+
+						if len(images) > 0 {
+							// select an image
+							selectImage(container.Name, ecrRepositoryName, images)
+						} else {
+							// write a new image
+							inputImage(container.Name, container.Image)
+						}
+					} else {
+						// write a new image
+						inputImage(container.Name, container.Image)
+					}
+				}
+
+				for _, c := range config.taskDefinition.ContainerDefinitions {
+					log.Debug(fmt.Sprintf("image: %s", c.Image))
+				}
 				// @TODO
-				// - select an image for each selected containers
+				// - if len(containersToUpdate) > 0
 				// -- register a new revision for the task definition
-				// -- update service
+				// -- update service with new revision
 				/*
 					// create new revision for task definition
 					var jsonByte []byte
