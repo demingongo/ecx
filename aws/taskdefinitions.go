@@ -123,6 +123,7 @@ func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 					},
 				},
 			},
+			Family: ExtractFamilyFromRevision(taskDefinition),
 		}
 		return result, nil
 	}

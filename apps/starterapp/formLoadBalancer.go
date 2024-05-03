@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/huh"
 	"github.com/demingongo/ecx/aws"
 	formmmodel "github.com/demingongo/ecx/bubbles/formmodel"
+	"github.com/demingongo/ecx/globals"
 )
 
 func generateFormLoadBalancer(list []aws.ContainerPortMapping) *huh.Form {
@@ -34,8 +35,8 @@ func generateFormLoadBalancer(list []aws.ContainerPortMapping) *huh.Form {
 				).Height(6),
 		),
 	).
-		WithTheme(theme).
-		WithWidth(formWidth)
+		WithTheme(globals.Theme).
+		WithWidth(globals.FormWidth)
 
 	return form
 }
@@ -46,7 +47,7 @@ func runFormLoadBalancer(list []aws.ContainerPortMapping) *huh.Form {
 	fModel := formmmodel.NewModel(formmmodel.ModelConfig{
 		Form:       form,
 		InfoBubble: info,
-	}).Width(width)
+	}).Width(globals.Width)
 
 	tea.NewProgram(&fModel).Run()
 

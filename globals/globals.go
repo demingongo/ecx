@@ -1,6 +1,10 @@
 package globals
 
-import "github.com/charmbracelet/huh"
+import (
+	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/log"
+	"github.com/spf13/viper"
+)
 
 var (
 	Theme *huh.Theme = huh.ThemeBase()
@@ -17,3 +21,12 @@ const (
 	LogoError   = "❌"
 	LogoInfo    = "" //"🛈"
 )
+
+func LoadGlobals() {
+	if viper.GetBool("verbose") {
+		log.SetLevel(log.DebugLevel)
+	}
+	if viper.GetBool("colors") {
+		Theme = huh.ThemeDracula()
+	}
+}

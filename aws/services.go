@@ -60,7 +60,7 @@ func DescribeService(cluster string, serviceArn string) (Service, error) {
 			ServiceName: "dummy-service",
 			Deployments: []Deployment{
 				{
-					Id:             "123",
+					Id:             "ecs-svc/1234567890123456789",
 					TaskDefinition: "arn:aws:ecs:us-east-1:053534965804:task-definition/dummy:5",
 				},
 			},
@@ -84,7 +84,28 @@ func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)
-		return []Service{}, nil
+		return []Service{
+			{
+				ServiceArn:  "arn:aws:ecs:us-west-2:123456789012:service/dummy-service",
+				ServiceName: "dummy-service",
+				Deployments: []Deployment{
+					{
+						Id:             "ecs-svc/1234567890123456789",
+						TaskDefinition: "arn:aws:ecs:us-east-1:053534965804:task-definition/dummy:5",
+					},
+				},
+			},
+			{
+				ServiceArn:  "arn:aws:ecs:us-west-2:123456789012:service/dummy-service-2",
+				ServiceName: "dummy-service-2",
+				Deployments: []Deployment{
+					{
+						Id:             "ecs-svc/9876543210987654321",
+						TaskDefinition: "arn:aws:ecs:us-east-1:053534965804:task-definition/dummy2:18",
+					},
+				},
+			},
+		}, nil
 	}
 
 	_, err := execAWS(args, &result)

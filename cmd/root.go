@@ -6,8 +6,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/charmbracelet/log"
 	"github.com/demingongo/ecx/apps/starterapp"
+	"github.com/demingongo/ecx/globals"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,9 +30,7 @@ Here's my personal helper. It uses aws-cli under the hood.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		if viper.GetBool("verbose") {
-			log.SetLevel(log.DebugLevel)
-		}
+		globals.LoadGlobals()
 		starterapp.Run()
 	},
 }

@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	formmmodel "github.com/demingongo/ecx/bubbles/formmodel"
+	"github.com/demingongo/ecx/globals"
 )
 
 func selectRuleJSON(info string, title string, dir string) string {
@@ -23,8 +24,8 @@ func generateFormRules() *huh.Form {
 				Value(&confirm),
 		),
 	).
-		WithTheme(theme).
-		WithWidth(formWidth)
+		WithTheme(globals.Theme).
+		WithWidth(globals.FormWidth)
 
 	return form
 }
@@ -35,7 +36,7 @@ func runFormRules() *huh.Form {
 	fModel := formmmodel.NewModel(formmmodel.ModelConfig{
 		Form:       form,
 		InfoBubble: info,
-	}).Width(width)
+	}).Width(globals.Width)
 
 	tea.NewProgram(&fModel).Run()
 

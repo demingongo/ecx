@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	formmmodel "github.com/demingongo/ecx/bubbles/formmodel"
+	"github.com/demingongo/ecx/globals"
 )
 
 func generateFormMenu() *huh.Form {
@@ -33,8 +34,8 @@ func generateFormMenu() *huh.Form {
 				}),
 		),
 	).
-		WithTheme(theme).
-		WithWidth(formWidth)
+		WithTheme(globals.Theme).
+		WithWidth(globals.FormWidth)
 
 	return form
 }
@@ -45,7 +46,7 @@ func runFormMenu() *huh.Form {
 	fModel := formmmodel.NewModel(formmmodel.ModelConfig{
 		Form:       form,
 		InfoBubble: info,
-	}).Width(width)
+	}).Width(globals.Width)
 
 	tea.NewProgram(&fModel).Run()
 

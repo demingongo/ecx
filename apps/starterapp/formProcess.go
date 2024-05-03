@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	formmmodel "github.com/demingongo/ecx/bubbles/formmodel"
+	"github.com/demingongo/ecx/globals"
 )
 
 func generateFormProcess() *huh.Form {
@@ -17,8 +18,8 @@ func generateFormProcess() *huh.Form {
 				Inline(true),
 		),
 	).
-		WithTheme(theme).
-		WithWidth(formWidth)
+		WithTheme(globals.Theme).
+		WithWidth(globals.FormWidth)
 
 	return form
 }
@@ -30,7 +31,7 @@ func runFormProcess() *huh.Form {
 		Form:         form,
 		InfoBubble:   info,
 		VerticalMode: true,
-	}).Width(width)
+	}).Width(globals.Width)
 
 	tea.NewProgram(&fModel).Run()
 

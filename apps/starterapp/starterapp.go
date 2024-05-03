@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/demingongo/ecx/aws"
 	"github.com/demingongo/ecx/bubbles/filepickermodel"
+	"github.com/demingongo/ecx/globals"
 	"github.com/spf13/viper"
 )
 
@@ -62,26 +63,12 @@ type filepickerStyleStruct struct {
 	symlink   lipgloss.Style
 }
 
-const (
-	formWidth = 60
-	infoWidth = 38
-
-	width = 100
-)
-
 var (
 
 	// General.
 
 	config Config
 	info   string
-
-	theme = huh.ThemeBase()
-
-	logoEmpty   = "" //"ᶻ 𝗓 𐰁"
-	logoSuccess = "✔️"
-	logoError   = "❌"
-	logoInfo    = "" //"🛈"
 
 	subtle  = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#383838"}
 	special = lipgloss.AdaptiveColor{Light: "230", Dark: "#010102"}
@@ -110,7 +97,7 @@ var (
 			BorderLeft(true).
 			BorderRight(true).
 			BorderBottom(true).
-			Width(infoWidth)
+			Width(globals.InfoWidth)
 
 	// filepicker
 	filepickerStyle = filepickerStyleStruct{
@@ -137,8 +124,8 @@ func selectJSONFile(title string, currentDirectory string, info string) string {
 		ShowPermissions(false).
 		ShowSize(false).
 		Height(8).
-		Width(width).
-		FilepickerWidth(formWidth).
+		Width(globals.Width).
+		FilepickerWidth(globals.FormWidth).
 		StyleDirectory(filepickerStyle.directory).
 		StyleFile(filepickerStyle.file).
 		StyleSymlink(filepickerStyle.symlink).
@@ -255,13 +242,13 @@ func process(logger *log.Logger) {
 			Run()
 
 		if err != nil {
-			config.targetGroupLogo = logoError
+			config.targetGroupLogo = globals.LogoError
 			info = generateInfo()
 			fmt.Println(info)
 			logger.Fatal("CreateTargetGroup", err)
 		}
 		config.targetGroup.Arn = result.TargetGroupArn
-		config.targetGroupLogo = logoSuccess
+		config.targetGroupLogo = globals.LogoSuccess
 	}
 
 	if len(config.rules) > 0 {
@@ -275,13 +262,13 @@ func process(logger *log.Logger) {
 				}).
 				Run()
 			if err != nil {
-				config.rulesLogo = logoError
+				config.rulesLogo = globals.LogoError
 				info = generateInfo()
 				fmt.Println(info)
 				logger.Fatal("CreateRule", err)
 			}
 		}
-		config.rulesLogo = logoSuccess
+		config.rulesLogo = globals.LogoSuccess
 	}
 
 	if len(config.service.Filepath) > 0 {
@@ -298,12 +285,12 @@ func process(logger *log.Logger) {
 			}).
 			Run()
 		if err != nil {
-			config.serviceLogo = logoError
+			config.serviceLogo = globals.LogoError
 			info = generateInfo()
 			fmt.Println(info)
 			logger.Fatal("CreateService", err)
 		}
-		config.serviceLogo = logoSuccess
+		config.serviceLogo = globals.LogoSuccess
 	}
 
 	info = generateInfo()
@@ -311,10 +298,6 @@ func process(logger *log.Logger) {
 }
 
 func Run() {
-
-	if viper.GetBool("colors") {
-		theme = huh.ThemeDracula()
-	}
 
 	logger := createLogger()
 
@@ -368,12 +351,12 @@ func Run() {
 					config.targetGroup.Arn = tg.TargetGroupArn
 					config.targetGroup.Name = tg.TargetGroupName
 					config.targetGroupDescription = generateDescription(tg.TargetGroupName, tg.TargetGroupArn)
-					config.targetGroupLogo = logoInfo
+					config.targetGroupLogo = globals.LogoInfo
 				}
 			}
 		}
 		if config.targetGroupDescription == "" {
-			config.targetGroupLogo = logoEmpty
+			config.targetGroupLogo = globals.LogoEmpty
 		}
 		info = generateInfo()
 
@@ -401,7 +384,7 @@ func Run() {
 			}
 		}
 		if len(config.rules) == 0 {
-			config.rulesLogo = logoEmpty
+			config.rulesLogo = globals.LogoEmpty
 			info = generateInfo()
 		}
 
@@ -415,7 +398,7 @@ func Run() {
 			config.service.Filepath = selectServiceJSON(info)
 		}
 		if config.service.Filepath == "" {
-			config.serviceLogo = logoEmpty
+			config.serviceLogo = globals.LogoEmpty
 		} else {
 			tgConf := viper.New()
 			tgConf.SetConfigFile(config.service.Filepath)
