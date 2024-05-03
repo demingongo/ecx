@@ -95,12 +95,16 @@ type TaskDefinition struct {
 	RuntimePlatform         any   `json:"runtimePlatform,omitempty"`
 }
 
+type describeTaskDefinitionOutput struct {
+	TaskDefinition TaskDefinition `json:"taskDefinition,omitempty"`
+	Tags           []any          `json:"tags,omitempty"`
+}
+
 // "taskDefinition" argument is the family, family:revision or full ARN
 func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 	result := TaskDefinition{}
 	var args []string
 	args = append(args, "ecs", "describe-task-definition", "--output", "json", "--no-paginate", "--include", "TAGS", "--task-definition", taskDefinition)
-	args = append(args, "--query", "taskDefinition")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(2)
@@ -123,10 +127,15 @@ func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 		return result, nil
 	}
 
-	_, err := execAWS(args, &result)
+	var output describeTaskDefinitionOutput
+	_, err := execAWS(args, &output)
 	if err != nil {
 		return result, err
 	}
+
+	result = output.TaskDefinition
+	result.Tags = output.Tags
+
 	log.Debug(result)
 
 	return result, nil
