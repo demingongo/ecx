@@ -3,7 +3,6 @@ package updateserviceapp
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/demingongo/ecx/aws"
@@ -18,6 +17,10 @@ type Config struct {
 	taskDefinition aws.TaskDefinition
 }
 
+var (
+	config Config
+)
+
 func (m Config) CurrentTaskDefinitionArn() string {
 	var result string
 	if len(m.service.Deployments) > 0 {
@@ -30,9 +33,30 @@ func (m Config) CurrentTaskDefinitionFamily() string {
 	return aws.ExtractFamilyFromRevision(m.CurrentTaskDefinitionArn())
 }
 
-var (
-	config Config
-)
+func removeJSONKey(taskDefinition aws.TaskDefinition, key string) ([]byte, error) {
+	// marshal to []byte
+	var jsonByte []byte
+	var err error
+	var output map[string]interface{}
+	if jsonByte, err = json.Marshal(taskDefinition); err != nil {
+		log.Error("json.Marshal(taskDefinition)")
+		return jsonByte, err
+	}
+	// unmarshal to map[string]interface{}
+	if err := json.Unmarshal(jsonByte, &output); err != nil {
+		log.Error("json.Unmarshal(jsonByte, &output)")
+		return jsonByte, err
+	}
+	// remove key
+	delete(output, key)
+	// marshal the updated map[string]interface{} to []byte
+	if jsonByte, err = json.Marshal(output); err != nil {
+		log.Error("json.Marshal(output)")
+		return jsonByte, err
+	}
+
+	return jsonByte, err
+}
 
 func Run() {
 
@@ -70,30 +94,8 @@ func Run() {
 	// marshal to []byte
 	var jsonByte []byte
 	var err error
-	var output map[string]interface{}
-	if jsonByte, err = json.Marshal(config.taskDefinition); err != nil {
-		log.Fatal("json.Marshal(taskDefinition)", err)
-	}
-	// unmarshal to map[string]interface{}
-	if err := json.Unmarshal(jsonByte, &output); err != nil {
-		log.Fatal("json.Unmarshal", err)
-	}
-	// remove "taskDefinitionArn" key
-	delete(output, "taskDefinitionArn")
-	// marshal the updated json to []byte
-	if jsonByte, err = json.Marshal(output); err != nil {
-		log.Fatal("json.Marshal(output)", err)
-	}
-
-	dir, _ := os.Getwd()
-	f, err := os.Create(dir + "/.task_def.json")
-	if err != nil {
-		log.Fatal("os.Create", err)
-	}
-	defer f.Close()
-	_, err = f.Write(jsonByte)
-	if err != nil {
-		log.Fatal("os.File.WriteString", err)
+	if jsonByte, err = removeJSONKey(config.taskDefinition, "taskDefinitionArn"); err != nil {
+		log.Fatal("removeJSONKey", err)
 	}
 
 	_, err = aws.RegisterTaskDefinition(string(jsonByte))
