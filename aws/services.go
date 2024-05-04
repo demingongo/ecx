@@ -112,3 +112,18 @@ func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
 
 	return result, err
 }
+
+func UpdateService(cluster string, serviceArn string, inputJson string) (string, error) {
+	var args []string
+	args = append(args, "ecs", "update-service", "--cluster", cluster, "--services", serviceArn, "--cli-input-json", inputJson)
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return strings.Join(args, " "), nil
+	}
+
+	var resp any
+	stdout, err := execAWS(args, &resp)
+
+	return string(stdout), err
+}

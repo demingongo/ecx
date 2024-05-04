@@ -2,7 +2,6 @@ package starterapp
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -192,24 +191,6 @@ func generateInfo() string {
 	return infoStyle.Render(content)
 }
 
-func createLogger() *log.Logger {
-	// Override the default info level style.
-	styles := log.DefaultStyles()
-	styles.Levels[log.InfoLevel] = lipgloss.NewStyle().
-		SetString("INFO").
-		Padding(0, 1, 0, 1).
-		Background(lipgloss.Color("50")).
-		Foreground(lipgloss.Color("0"))
-	// Add a custom style for key `err`
-	styles.Keys["err"] = lipgloss.NewStyle().Foreground(lipgloss.Color("50"))
-	styles.Values["err"] = lipgloss.NewStyle().Bold(true)
-	logger := log.New(os.Stderr)
-	logger.SetStyles(styles)
-	logger.SetLevel(log.GetLevel())
-
-	return logger
-}
-
 func generateDescription(name string, filepath string) string {
 
 	r := name
@@ -299,7 +280,7 @@ func process(logger *log.Logger) {
 
 func Run() {
 
-	logger := createLogger()
+	logger := globals.Logger
 
 	info = generateInfo()
 

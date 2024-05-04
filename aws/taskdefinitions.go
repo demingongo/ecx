@@ -174,17 +174,25 @@ func ExtractFamilyFromRevision(taskdefArn string) string {
 	return result
 }
 
-func RegisterTaskDefinition(inputJson string) (string, error) {
+func RegisterTaskDefinition(inputJson string) (TaskDefinition, error) {
+	result := TaskDefinition{}
 	var args []string
 	args = append(args, "ecs", "register-task-definition", "--cli-input-json", inputJson)
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)
-		return strings.Join(args, " "), nil
+		return TaskDefinition{
+			TaskDefinitionArn: "arn:aws:ecs:us-east-1:053534965804:task-definition/dummy:99",
+		}, nil
 	}
 
-	var resp any
-	stdout, err := execAWS(args, &resp)
+	var output describeTaskDefinitionOutput
+	_, err := execAWS(args, &output)
+	if err != nil {
+		return result, err
+	}
 
-	return string(stdout), err
+	result = output.TaskDefinition
+
+	return result, err
 }

@@ -5,12 +5,17 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/huh/spinner"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/demingongo/ecx/aws"
 	"github.com/demingongo/ecx/globals"
 	"github.com/spf13/viper"
 )
+
+type UpdateServiceInputJson struct {
+	TaskDefinition string `json:"taskDefinition"`
+}
 
 type containerUpdate struct {
 	Name     string
@@ -29,6 +34,7 @@ type Config struct {
 
 	serviceLogo        string
 	taskDefinitionLogo string
+	containersLogo     string
 }
 
 func (m Config) CurrentTaskDefinitionArn() string {
@@ -168,7 +174,7 @@ func generateInfo() string {
 	if len(config.containersToUpdate) > 0 {
 		var containersInfo = []string{
 			content,
-			subtitleStyle.Render("Containers "),
+			subtitleStyle.Render("Containers " + config.containersLogo),
 		}
 		for _, ctu := range config.containersToUpdate {
 			containersInfo = append(containersInfo, "・"+ctu.OldImage+notifText(" » "))
@@ -223,7 +229,87 @@ func inputImage(containerName string, currentImage string) {
 	}
 }
 
+func isProcessable() bool {
+	return config.cluster != "" &&
+		config.service.ServiceArn != "" &&
+		len(config.containersToUpdate) > 0 &&
+		config.taskDefinition.Family != ""
+}
+
+func isServiceUpdatable() bool {
+	currentTaskDefinitionArn := config.CurrentTaskDefinitionArn()
+	return config.cluster != "" &&
+		config.service.ServiceArn != "" &&
+		config.taskDefinition.TaskDefinitionArn != "" &&
+		currentTaskDefinitionArn != "" &&
+		currentTaskDefinitionArn != config.taskDefinition.TaskDefinitionArn
+}
+
+func isServiceUpToDate() bool {
+	currentTaskDefinitionArn := config.CurrentTaskDefinitionArn()
+	return config.cluster != "" &&
+		config.service.ServiceArn != "" &&
+		config.taskDefinition.TaskDefinitionArn != "" &&
+		currentTaskDefinitionArn != "" &&
+		currentTaskDefinitionArn == config.taskDefinition.TaskDefinitionArn
+}
+
+func updateService(logger *log.Logger, taskDefinitionArn string) {
+	var err error
+	_ = spinner.New().Type(spinner.Meter).
+		Title(fmt.Sprintf(" Updating service \"%s\"...", config.service.ServiceName)).
+		Action(func() {
+			// update service
+			var jsonByte []byte
+			if jsonByte, err = json.Marshal(UpdateServiceInputJson{
+				TaskDefinition: taskDefinitionArn,
+			}); err == nil {
+				_, err = aws.UpdateService(config.cluster, config.service.ServiceArn, string(jsonByte))
+			}
+		}).
+		Run()
+	if err != nil {
+		config.serviceLogo = globals.LogoError
+		info = generateInfo()
+		fmt.Println(info)
+		logger.Fatal("UpdateService", err)
+	}
+	config.serviceLogo = globals.LogoSuccess
+
+	info = generateInfo()
+	fmt.Println(info)
+}
+
+func process(logger *log.Logger) {
+	var err error
+	var revisionedTaskDef aws.TaskDefinition
+
+	_ = spinner.New().Type(spinner.Meter).
+		Title(fmt.Sprintf(" Registering task definition \"%s\"...", config.taskDefinition.Family)).
+		Action(func() {
+			// create new revision for task definition
+			var jsonByte []byte
+			if jsonByte, err = removeJSONKey(config.taskDefinition, "taskDefinitionArn"); err == nil {
+				revisionedTaskDef, err = aws.RegisterTaskDefinition(string(jsonByte))
+			}
+		}).
+		Run()
+	if err != nil {
+		config.taskDefinitionLogo = globals.LogoError
+		config.containersLogo = globals.LogoError
+		info = generateInfo()
+		fmt.Println(info)
+		logger.Fatal("RegisterTaskDefinition", err)
+	}
+	config.taskDefinitionLogo = globals.LogoSuccess
+	config.containersLogo = globals.LogoSuccess
+
+	updateService(logger, revisionedTaskDef.TaskDefinitionArn)
+}
+
 func Run() {
+
+	logger := globals.Logger
 
 	config.cluster = viper.GetString("cluster")
 	config.service = aws.Service{
@@ -310,34 +396,22 @@ func Run() {
 				for _, c := range config.taskDefinition.ContainerDefinitions {
 					log.Debug(fmt.Sprintf("image: %s", c.Image))
 				}
-				// @TODO
-				// - if len(containersToUpdate) > 0
-				// -- register a new revision for the task definition
-				// -- update service with new revision
-				// - else
-				// -- it looks like your service uses an older revision, update it?
-				/*
-					// create new revision for task definition
-					var jsonByte []byte
-					if jsonByte, err = removeJSONKey(config.taskDefinition, "taskDefinitionArn"); err != nil {
-						log.Fatal("removeJSONKey", err)
-					}
-
-					_, err = aws.RegisterTaskDefinition(string(jsonByte))
-					if err != nil {
-						log.Fatal("RegisterTaskDefinition", err)
-					}
-				*/
-			} else {
-				// @TODO it looks like your service uses an older revision, update it?
 			}
-		} else {
-			// @TODO message: service has no updatable deployment at the moment
 		}
 	}
 
 	info = generateInfo()
-	fmt.Println(info)
+	if isProcessable() {
+		if form := runFormProcess(); form.State == huh.StateCompleted && form.GetBool("confirm") {
+			process(logger)
+		}
+	} else if isServiceUpdatable() {
+		if form := runFormUpdateService(); form.State == huh.StateCompleted && form.GetBool("confirm") {
+			updateService(logger, config.taskDefinition.TaskDefinitionArn)
+		}
+	} else if isServiceUpToDate() {
+		fmt.Printf("Service \"%s\" in cluster \"%s\" is already up to date.", config.service.ServiceName, config.cluster)
+	}
 
 	fmt.Println("Done")
 }

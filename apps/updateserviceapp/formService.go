@@ -73,3 +73,33 @@ func runFormService(list []aws.Service) *huh.Form {
 
 	return form
 }
+
+func generateFormUpdateService() *huh.Form {
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewConfirm().
+				Key("confirm").
+				Title("It looks like your service uses an older revision: ").
+				Negative("Cancel").
+				Affirmative("Update"),
+		),
+	).
+		WithTheme(globals.Theme).
+		WithWidth(globals.FormWidth)
+
+	return form
+}
+
+func runFormUpdateService() *huh.Form {
+
+	form := generateFormUpdateService()
+	fModel := formmmodel.NewModel(formmmodel.ModelConfig{
+		Form:         form,
+		InfoBubble:   info,
+		VerticalMode: true,
+	}).Width(globals.Width)
+
+	tea.NewProgram(&fModel).Run()
+
+	return form
+}
