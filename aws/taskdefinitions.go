@@ -137,8 +137,6 @@ func DescribeTaskDefinition(taskDefinition string) (TaskDefinition, error) {
 	result = output.TaskDefinition
 	result.Tags = output.Tags
 
-	log.Debug(result)
-
 	return result, nil
 }
 
