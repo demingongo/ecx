@@ -115,7 +115,7 @@ func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
 
 func UpdateService(cluster string, serviceArn string, inputJson string) (string, error) {
 	var args []string
-	args = append(args, "ecs", "update-service", "--cluster", cluster, "--services", serviceArn, "--cli-input-json", inputJson)
+	args = append(args, "ecs", "update-service", "--cluster", cluster, "--service", serviceArn, "--cli-input-json", inputJson)
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)
