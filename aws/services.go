@@ -72,6 +72,7 @@ func DescribeService(cluster string, serviceArn string) (Service, error) {
 	return result, err
 }
 
+// @TODO change it to "list-services" as "--services" is required for "describe-services"
 func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
 	var result []Service
 	var args []string
@@ -105,6 +106,25 @@ func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
 					},
 				},
 			},
+		}, nil
+	}
+
+	_, err := execAWS(args, &result)
+
+	return result, err
+}
+
+func ListServices(cluster string) ([]string, error) {
+	var result []string
+	var args []string
+	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster, "--no-paginate")
+	args = append(args, "--query", "serviceArns")
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return []string{
+			"arn:aws:ecs:us-west-2:123456789012:service/dummy-service",
+			"arn:aws:ecs:us-west-2:123456789012:service/dummy-service-2",
 		}, nil
 	}
 
