@@ -262,9 +262,6 @@ func Run() {
 	info = generateInfo()
 
 	if config.service.ServiceArn != "" {
-
-		log.Info(fmt.Sprintf("ECR repo name: %s", aws.ExtractNameFromURI("xxx.dkr.ecr.us-west-2.amazonaws.com/repo/dummy")))
-
 		// retrieve the last revision from aws
 		if config.CurrentTaskDefinitionFamily() != "" {
 			var err error
@@ -283,7 +280,7 @@ func Run() {
 				if containersForm.State == huh.StateCompleted && containersForm.GetBool("confirm") {
 					containersList = containersForm.Get("containers").([]ComparableContainerDefinition)
 					for _, container := range containersList {
-						log.Info(fmt.Sprintf("you selected: %s", container.Name))
+						log.Debug(fmt.Sprintf("you selected container: %s", container.Name))
 					}
 				}
 			}
@@ -317,6 +314,8 @@ func Run() {
 				// - if len(containersToUpdate) > 0
 				// -- register a new revision for the task definition
 				// -- update service with new revision
+				// - else
+				// -- it looks like your service uses an older revision, update it?
 				/*
 					// create new revision for task definition
 					var jsonByte []byte
@@ -330,10 +329,10 @@ func Run() {
 					}
 				*/
 			} else {
-				// @TODO force deployment
+				// @TODO it looks like your service uses an older revision, update it?
 			}
 		} else {
-			// @TODO force redeployment
+			// @TODO message: service has no updatable deployment at the moment
 		}
 	}
 
