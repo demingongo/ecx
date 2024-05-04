@@ -72,14 +72,13 @@ func DescribeService(cluster string, serviceArn string) (Service, error) {
 	return result, err
 }
 
-// @TODO change it to "list-services" as "--services" is required for "describe-services"
-func DescribeServices(cluster string, serviceArn string) ([]Service, error) {
+// max 10 services
+// (https://docs.aws.amazon.com/cli/latest/reference/ecs/describe-services.html#options)
+func DescribeServices(cluster string, serviceArns ...string) ([]Service, error) {
 	var result []Service
 	var args []string
-	args = append(args, "ecs", "describe-services", "--output", "json", "--cluster", cluster, "--no-paginate")
-	if serviceArn != "" {
-		args = append(args, "--services", serviceArn)
-	}
+	args = append(args, "ecs", "describe-services", "--output", "json", "--cluster", cluster, "--no-paginate", "--services")
+	args = append(args, serviceArns...)
 	args = append(args, "--query", "services[*].{serviceArn: serviceArn, serviceName: serviceName, deployments: deployments[*].{id: id, taskDefinition: taskDefinition}}")
 
 	log.Debug(args)
@@ -129,6 +128,44 @@ func ListServices(cluster string) ([]string, error) {
 	}
 
 	_, err := execAWS(args, &result)
+
+	return result, err
+}
+
+func ListServices2(cluster string) ([]Service, error) {
+	var result []Service
+	var args []string
+	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster, "--no-paginate")
+	args = append(args, "--query", "serviceArns")
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return DescribeServices(
+			cluster,
+			"arn:aws:ecs:us-west-2:123456789012:service/dummy-service",
+			"arn:aws:ecs:us-west-2:123456789012:service/dummy-service-2",
+		)
+	}
+
+	var serviceArns []string
+	_, err := execAWS(args, &serviceArns)
+
+	chunkSize := 10
+
+	for i := 0; i < len(serviceArns); i += chunkSize {
+		var resultChunk []Service
+		end := i + chunkSize
+
+		if end > len(serviceArns) {
+			end = len(serviceArns)
+		}
+
+		resultChunk, err = DescribeServices(cluster, serviceArns[i:end]...)
+		if err != nil {
+			break
+		}
+		result = append(result, resultChunk...)
+	}
 
 	return result, err
 }

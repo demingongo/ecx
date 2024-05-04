@@ -326,8 +326,7 @@ func Run() {
 			log.Fatal("DescribeService", err)
 		}
 	} else {
-		// @TODO not working, use aws.ListServices
-		list, err := aws.DescribeServices(config.cluster, "")
+		list, err := aws.ListServices2(config.cluster)
 		if err != nil {
 			log.Fatal("DescribeServices", err)
 		}
