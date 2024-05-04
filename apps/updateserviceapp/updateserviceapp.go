@@ -326,9 +326,16 @@ func Run() {
 			log.Fatal("DescribeService", err)
 		}
 	} else {
-		list, err := aws.ListServices2(config.cluster)
+		var err error
+		var list []aws.Service
+		_ = spinner.New().Type(spinner.Globe).
+			Title(" Searching services...").
+			Action(func() {
+				list, err = aws.ListServices2(config.cluster)
+			}).
+			Run()
 		if err != nil {
-			log.Fatal("DescribeServices", err)
+			log.Fatal("ListServices2", err)
 		}
 		form := runFormService(list)
 		if form.State == huh.StateCompleted && form.GetBool("confirm") {
@@ -410,7 +417,7 @@ func Run() {
 			updateService(logger, config.taskDefinition.TaskDefinitionArn)
 		}
 	} else if isServiceUpToDate() {
-		fmt.Printf("Service \"%s\" in cluster \"%s\" is already up to date.", config.service.ServiceName, config.cluster)
+		fmt.Printf("Service \"%s\" in cluster \"%s\" is already up to date.\n", config.service.ServiceName, config.cluster)
 	}
 
 	fmt.Println("Done")
