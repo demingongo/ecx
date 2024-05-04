@@ -25,7 +25,7 @@ func generateFormSelectImage(description string, list []aws.Image) *huh.Form {
 				Key("image").
 				Options(
 					options...,
-				).Height(6),
+				).Height(10),
 		),
 	).
 		WithTheme(globals.Theme).
