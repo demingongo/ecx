@@ -192,7 +192,7 @@ func generateInfo() string {
 
 func selectImage(containerName string, ecrRepositoryName string, images []aws.Image) {
 	form := runFormSelectImage(
-		fmt.Sprintf("Container \"%s\", repository \"%s\":", containerName, ecrRepositoryName),
+		fmt.Sprintf("\"%s\" <= \"%s\":", containerName, ecrRepositoryName),
 		images,
 	)
 	if form.State == huh.StateCompleted {
