@@ -116,7 +116,7 @@ func DescribeServices(cluster string, serviceArns ...string) ([]Service, error) 
 func ListServices(cluster string) ([]string, error) {
 	var result []string
 	var args []string
-	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster, "--no-paginate")
+	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster)
 	args = append(args, "--query", "serviceArns")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
@@ -135,7 +135,7 @@ func ListServices(cluster string) ([]string, error) {
 func ListServices2(cluster string) ([]Service, error) {
 	var result []Service
 	var args []string
-	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster, "--no-paginate")
+	args = append(args, "ecs", "list-services", "--output", "json", "--cluster", cluster)
 	args = append(args, "--query", "serviceArns")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
