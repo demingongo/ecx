@@ -26,7 +26,7 @@ var rootCmd = &cobra.Command{
 Using AWS EC2/ECR/ECS?
 Tired of using the slow AWS console?
 
-Here's my personal helper. It uses aws-cli under the hood.`,
+Here's a helper that uses aws-cli under the hood.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
