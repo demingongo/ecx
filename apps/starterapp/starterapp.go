@@ -342,7 +342,7 @@ func Run() {
 		info = generateInfo()
 
 		// create rules
-		if operation == "create-targetgroup" || operation == "select-targetgroup" {
+		if config.targetGroup.IsComplete() {
 			rulesForm := runFormRules()
 			if rulesForm.State == huh.StateCompleted && rulesForm.GetBool("confirm") {
 				var searchDir string
