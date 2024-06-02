@@ -272,7 +272,7 @@ func updateService(logger *log.Logger, taskDefinitionArn string) {
 		config.serviceLogo = globals.LogoError
 		info = generateInfo()
 		fmt.Println(info)
-		logger.Fatal("UpdateService", err)
+		logger.Fatalf("UpdateService %v", err)
 	}
 	config.serviceLogo = globals.LogoSuccess
 
@@ -299,7 +299,7 @@ func process(logger *log.Logger) {
 		config.containersLogo = globals.LogoError
 		info = generateInfo()
 		fmt.Println(info)
-		logger.Fatal("RegisterTaskDefinition", err)
+		logger.Fatalf("RegisterTaskDefinition %v", err)
 	}
 	config.taskDefinitionLogo = globals.LogoSuccess
 	config.containersLogo = globals.LogoSuccess
@@ -323,7 +323,7 @@ func Run() {
 		var err error
 		config.service, err = aws.DescribeService(config.cluster, config.service.ServiceArn)
 		if err != nil {
-			log.Fatal("DescribeService", err)
+			log.Fatalf("DescribeService %v", err)
 		}
 	} else {
 		var err error
@@ -335,7 +335,7 @@ func Run() {
 			}).
 			Run()
 		if err != nil {
-			log.Fatal("ListServices2", err)
+			log.Fatalf("ListServices2 %v", err)
 		}
 		form := runFormService(list)
 		if form.State == huh.StateCompleted && form.GetBool("confirm") {

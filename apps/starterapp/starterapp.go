@@ -226,7 +226,7 @@ func process(logger *log.Logger) {
 			config.targetGroupLogo = globals.LogoError
 			info = generateInfo()
 			fmt.Println(info)
-			logger.Fatal("CreateTargetGroup", err)
+			logger.Fatalf("CreateTargetGroup %v", err)
 		}
 		config.targetGroup.Arn = result.TargetGroupArn
 		config.targetGroupLogo = globals.LogoSuccess
@@ -246,7 +246,7 @@ func process(logger *log.Logger) {
 				config.rulesLogo = globals.LogoError
 				info = generateInfo()
 				fmt.Println(info)
-				logger.Fatal("CreateRule", err)
+				logger.Fatalf("CreateRule %v", err)
 			}
 		}
 		config.rulesLogo = globals.LogoSuccess
@@ -269,7 +269,7 @@ func process(logger *log.Logger) {
 			config.serviceLogo = globals.LogoError
 			info = generateInfo()
 			fmt.Println(info)
-			logger.Fatal("CreateService", err)
+			logger.Fatalf("CreateService %v", err)
 		}
 		config.serviceLogo = globals.LogoSuccess
 	}
@@ -300,7 +300,7 @@ func Run() {
 				tgConf.SetConfigFile(config.targetGroup.Filepath)
 				err := tgConf.ReadInConfig()
 				if err != nil {
-					logger.Fatal("Could not read file:", err)
+					logger.Fatalf("Could not read file: %v", err)
 				}
 
 				config.targetGroup.Name = tgConf.GetString("Name")
@@ -385,7 +385,7 @@ func Run() {
 			serviceConf.SetConfigFile(config.service.Filepath)
 			err := serviceConf.ReadInConfig()
 			if err != nil {
-				logger.Fatal("Could not read file:", err)
+				logger.Fatalf("Could not read file: %v", err)
 			}
 			config.service.Name = serviceConf.GetString("serviceName")
 			config.service.TaskDefinition = serviceConf.GetString("taskDefinition")
