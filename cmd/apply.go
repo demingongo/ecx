@@ -24,7 +24,7 @@ ecx.yaml
 | api: ecx                                          |
 | apiVersion: 0.1                                   |
 |                                                   |
-| ## cloudwatch log groups                          |
+| # cloudwatch log groups                           |
 | logGroups:                                        |
 |   - group: /etc/app-test                          |
 |     retention: 1                                  |
@@ -35,7 +35,7 @@ ecx.yaml
 |   - taskdefinitions/taskdefinition.json           |
 |   - taskdefinitions/taskdefinition2.json          |
 |                                                   |
-| # flow:                                           |
+| # flows:                                          |
 | #                                                 |
 | # A flow could be                                 |
 | # - rules, target group and service               |
