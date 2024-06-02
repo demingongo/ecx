@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/demingongo/ecx/aws"
 	"github.com/demingongo/ecx/globals"
+	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
@@ -33,9 +34,9 @@ type Config struct {
 
 func (c *Config) loadConfig() *Config {
 
-	yamlFile, err := os.ReadFile("../../ecx-tests/project1/ecx.yaml")
+	yamlFile, err := os.ReadFile("ecx.yaml")
 	if err != nil {
-		globals.Logger.Printf("yamlFile.Get err   #%v ", err)
+		globals.Logger.Fatalf("%v", err)
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
@@ -55,7 +56,14 @@ var (
 func Run() {
 	logger := globals.Logger
 
-	logger.Debug("ecx apply")
+	if viper.GetString("project") != "" {
+		err := os.Chdir(viper.GetString("project"))
+		if err != nil {
+			logger.Fatalf("project: %v", err)
+		}
+	}
+
+	logger.Debugf("ecx apply %s", viper.GetString("project"))
 
 	config.loadConfig()
 
@@ -68,23 +76,7 @@ func Run() {
 		logger.Fatalf("Value for \"%s\" is not valid. Expected \"%s\".", "apiVersion", validApiVersion)
 	}
 
-	if len(config.TaskDefinitions) > 0 {
-		var err error
-		for _, taskDefinitionFile := range config.TaskDefinitions {
-			_ = spinner.New().Type(spinner.MiniDot).
-				Title(fmt.Sprintf(" task definition: %s", taskDefinitionFile)).
-				Action(func() {
-					// create new revision for task definition
-					_, err = aws.RegisterTaskDefinition(fmt.Sprintf("file://%s", taskDefinitionFile))
-				}).
-				Run()
-			if err != nil {
-				logger.Fatalf("RegisterTaskDefinition: %v", err)
-			}
-			fmt.Printf("task definition: %s\n", taskDefinitionFile)
-		}
-	}
-
+	// logGroups
 	if len(config.LogGroups) > 0 {
 		var err error
 		for _, logGroup := range config.LogGroups {
@@ -106,6 +98,25 @@ func Run() {
 		}
 	}
 
+	// taskDefinitions
+	if len(config.TaskDefinitions) > 0 {
+		var err error
+		for _, taskDefinitionFile := range config.TaskDefinitions {
+			_ = spinner.New().Type(spinner.MiniDot).
+				Title(fmt.Sprintf(" task definition: %s", taskDefinitionFile)).
+				Action(func() {
+					// create new revision for task definition
+					_, err = aws.RegisterTaskDefinition(fmt.Sprintf("file://%s", taskDefinitionFile))
+				}).
+				Run()
+			if err != nil {
+				logger.Fatalf("RegisterTaskDefinition: %v", err)
+			}
+			fmt.Printf("task definition: %s\n", taskDefinitionFile)
+		}
+	}
+
+	// flows
 	if len(config.Flows) > 0 {
 		var err error
 		for _, flow := range config.Flows {
@@ -114,17 +125,75 @@ func Run() {
 				Action(func() {
 					// @TODO create target group, rules and/or service
 					time.Sleep(2000 * time.Millisecond)
-					var targetGroup aws.TargetGroup
+
+					var (
+						targetGroup   aws.TargetGroup
+						containerName string
+						containerPort int
+					)
+
+					// create target group
 					if flow.TargetGroup != "" {
 						targetGroup, err = aws.CreateTargetGroup(flow.TargetGroup)
 					}
 					if err != nil {
 						return
 					}
+
+					// create rules
 					if targetGroup.TargetGroupArn != "" && len(flow.Rules) > 0 {
 						for _, rule := range flow.Rules {
 							_, err = aws.CreateRule(rule, targetGroup.TargetGroupArn)
+							if err != nil {
+								break
+							}
 						}
+					}
+					if err != nil {
+						return
+					}
+
+					// create service
+					if flow.Service != "" {
+						// get port mapping named "http"
+						// or the first port mapping
+						if targetGroup.TargetGroupArn != "" {
+							var containers []aws.ContainerPortMapping
+							serviceConf := viper.New()
+							serviceConf.SetConfigFile(flow.Service)
+							err = serviceConf.ReadInConfig()
+							if err != nil {
+								return
+							}
+							serviceName := serviceConf.GetString("serviceName")
+							taskDefinition := serviceConf.GetString("taskDefinition")
+
+							logger.Debugf("serviceName %s", serviceName)
+							logger.Debugf("taskDefinition %s", taskDefinition)
+
+							containers, err = aws.ListPortMapping(taskDefinition)
+							if err != nil {
+								return
+							}
+
+							for i, container := range containers {
+								if container.PortMapping.Name == "http" {
+									containerName = container.Name
+									containerPort = container.PortMapping.ContainerPort
+									break
+								}
+								if i == 0 {
+									containerName = container.Name
+									containerPort = container.PortMapping.ContainerPort
+								}
+							}
+						}
+
+						_, err = aws.CreateService(flow.Service, aws.ServiceLoadBalancer{
+							TargetGroupArn: targetGroup.TargetGroupArn,
+							ContainerName:  containerName,
+							ContainerPort:  containerPort,
+						})
 					}
 				}).
 				Run()
@@ -134,4 +203,6 @@ func Run() {
 			fmt.Printf("flow: %v\n", flow)
 		}
 	}
+
+	fmt.Println("Done")
 }

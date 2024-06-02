@@ -381,14 +381,14 @@ func Run() {
 		if config.service.Filepath == "" {
 			config.serviceLogo = globals.LogoEmpty
 		} else {
-			tgConf := viper.New()
-			tgConf.SetConfigFile(config.service.Filepath)
-			err := tgConf.ReadInConfig()
+			serviceConf := viper.New()
+			serviceConf.SetConfigFile(config.service.Filepath)
+			err := serviceConf.ReadInConfig()
 			if err != nil {
 				logger.Fatal("Could not read file:", err)
 			}
-			config.service.Name = tgConf.GetString("serviceName")
-			config.service.TaskDefinition = tgConf.GetString("taskDefinition")
+			config.service.Name = serviceConf.GetString("serviceName")
+			config.service.TaskDefinition = serviceConf.GetString("taskDefinition")
 			config.serviceDescription = generateDescription(config.service.Name, config.service.Filepath)
 		}
 		info = generateInfo()

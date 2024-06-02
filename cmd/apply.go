@@ -7,6 +7,7 @@ import (
 	"github.com/demingongo/ecx/apps/applyapp"
 	"github.com/demingongo/ecx/globals"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // applyCmd represents the apply command
@@ -37,4 +38,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// applyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	applyCmd.PersistentFlags().StringP("project", "p", "", "cluster name")
+	applyCmd.MarkPersistentFlagDirname("project")
+
+	viper.BindPFlag("project", applyCmd.PersistentFlags().Lookup("project"))
 }
