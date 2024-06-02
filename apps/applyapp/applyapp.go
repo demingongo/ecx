@@ -3,6 +3,7 @@ package applyapp
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/demingongo/ecx/aws"
@@ -70,7 +71,7 @@ func Run() {
 	if len(config.TaskDefinitions) > 0 {
 		var err error
 		for _, taskDefinitionFile := range config.TaskDefinitions {
-			_ = spinner.New().Type(spinner.Meter).
+			_ = spinner.New().Type(spinner.MiniDot).
 				Title(fmt.Sprintf(" task definition: %s", taskDefinitionFile)).
 				Action(func() {
 					// create new revision for task definition
@@ -87,7 +88,7 @@ func Run() {
 	if len(config.LogGroups) > 0 {
 		var err error
 		for _, logGroup := range config.LogGroups {
-			_ = spinner.New().Type(spinner.Meter).
+			_ = spinner.New().Type(spinner.MiniDot).
 				Title(fmt.Sprintf(" log group: %s", logGroup.Group)).
 				Action(func() {
 					// create log group
@@ -102,6 +103,35 @@ func Run() {
 				logger.Fatalf("CreateLogGroup: %v", err)
 			}
 			fmt.Printf("log group: %s\n", logGroup.Group)
+		}
+	}
+
+	if len(config.Flows) > 0 {
+		var err error
+		for _, flow := range config.Flows {
+			_ = spinner.New().Type(spinner.MiniDot).
+				Title(fmt.Sprintf(" flow: %v", flow)).
+				Action(func() {
+					// @TODO create target group, rules and/or service
+					time.Sleep(2000 * time.Millisecond)
+					var targetGroup aws.TargetGroup
+					if flow.TargetGroup != "" {
+						targetGroup, err = aws.CreateTargetGroup(flow.TargetGroup)
+					}
+					if err != nil {
+						return
+					}
+					if targetGroup.TargetGroupArn != "" && len(flow.Rules) > 0 {
+						for _, rule := range flow.Rules {
+							_, err = aws.CreateRule(rule, targetGroup.TargetGroupArn)
+						}
+					}
+				}).
+				Run()
+			if err != nil {
+				logger.Fatalf("flow: %v", err)
+			}
+			fmt.Printf("flow: %v\n", flow)
 		}
 	}
 }
