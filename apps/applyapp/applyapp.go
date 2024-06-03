@@ -3,6 +3,7 @@ package applyapp
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/huh/spinner"
@@ -24,12 +25,26 @@ type Flow struct {
 	Rules       []string `yaml:"rules"`
 }
 
+type LoadBalancer struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+
+type Listeners struct {
+	Key          string `yaml:"key"`
+	Value        string `yaml:"value"`
+	LoadBalancer string `yaml:"loadBalancer"`
+	TargetGroup  string `yaml:"targetGroup"`
+}
+
 type Config struct {
-	Api             string     `yaml:"api"`
-	ApiVersion      string     `yaml:"apiVersion"`
-	LogGroups       []LogGroup `yaml:"logGroups"`
-	TaskDefinitions []string   `yaml:"taskDefinitions"`
-	Flows           []Flow     `yaml:"flows"`
+	Api             string         `yaml:"api"`
+	ApiVersion      string         `yaml:"apiVersion"`
+	LogGroups       []LogGroup     `yaml:"logGroups"`
+	TaskDefinitions []string       `yaml:"taskDefinitions"`
+	Flows           []Flow         `yaml:"flows"`
+	LoadBalancers   []LoadBalancer `yaml:"loadBalancers"`
+	Listeners       []Listeners    `yaml:"listeners"`
 }
 
 func (c *Config) loadConfig() *Config {
@@ -46,12 +61,26 @@ func (c *Config) loadConfig() *Config {
 	return c
 }
 
+type ConfigRefs struct {
+	LoadBalancers map[string]aws.LoadBalancer
+	Listeners     map[string]aws.Listener
+	TargetGroups  map[string]aws.TargetGroup
+}
+
 var (
 	config Config
 
 	validApi        = "ecx"
 	validApiVersion = "0.1"
 )
+
+func createConfigRefs() ConfigRefs {
+	var configRefs ConfigRefs
+	configRefs.LoadBalancers = make(map[string]aws.LoadBalancer)
+	configRefs.Listeners = make(map[string]aws.Listener)
+	configRefs.TargetGroups = make(map[string]aws.TargetGroup)
+	return configRefs
+}
 
 func Run() {
 	logger := globals.Logger
@@ -74,6 +103,83 @@ func Run() {
 	}
 	if config.ApiVersion != "0.1" {
 		logger.Fatalf("Value for \"%s\" is not valid. Expected \"%s\".", "apiVersion", validApiVersion)
+	}
+
+	// references
+	refs := createConfigRefs()
+
+	// @TODO loadBalancers
+	if len(config.LoadBalancers) > 0 {
+		logger.Debugf("Load balancers: %v", config.LoadBalancers)
+		for _, loadBalancer := range config.LoadBalancers {
+			if loadBalancer.Value != "" {
+				var (
+					err  error
+					resp aws.LoadBalancer
+				)
+				_ = spinner.New().Type(spinner.MiniDot).
+					Title(fmt.Sprintf(" load balancer: %s", loadBalancer.Key)).
+					Action(func() {
+						// create load balancer
+						resp, err = aws.CreateLoadBalancer(loadBalancer.Value)
+					}).
+					Run()
+				if err != nil {
+					logger.Fatalf("CreateLoadBalancer: %v", err)
+				}
+				if loadBalancer.Key != "" && resp.LoadBalancerArn != "" {
+					refs.LoadBalancers[loadBalancer.Key] = resp
+				}
+				fmt.Printf("load balancer: %s\n", loadBalancer.Key)
+			}
+		}
+	}
+
+	// @TODO listeners
+	if len(config.Listeners) > 0 {
+		logger.Debugf("Listeners: %v", config.Listeners)
+		for _, listener := range config.Listeners {
+			if listener.Value != "" {
+				var (
+					err  error
+					resp aws.Listener
+				)
+				_ = spinner.New().Type(spinner.MiniDot).
+					Title(fmt.Sprintf(" listener: %s", listener.Key)).
+					Action(func() {
+						var (
+							lbArn string
+							tgArn string
+						)
+						if listener.LoadBalancer != "" {
+							if strings.HasPrefix(listener.LoadBalancer, "ref:") {
+								key := listener.LoadBalancer[4:]
+								lbArn = refs.LoadBalancers[key].LoadBalancerArn
+							} else {
+								lbArn = listener.LoadBalancer
+							}
+						}
+						if listener.TargetGroup != "" {
+							if strings.HasPrefix(listener.TargetGroup, "ref:") {
+								key := listener.TargetGroup[4:]
+								tgArn = refs.TargetGroups[key].TargetGroupArn
+							} else {
+								tgArn = listener.TargetGroup
+							}
+						}
+						// create listener
+						resp, err = aws.CreateListener(listener.Value, lbArn, tgArn)
+					}).
+					Run()
+				if err != nil {
+					logger.Fatalf("CreateLoadBalancer: %v", err)
+				}
+				if listener.Key != "" && resp.ListenerArn != "" {
+					refs.Listeners[listener.Key] = resp
+				}
+				fmt.Printf("listener: %s\n", listener.Key)
+			}
+		}
 	}
 
 	// logGroups
@@ -124,7 +230,7 @@ func Run() {
 				Title(fmt.Sprintf(" flow: %v", flow)).
 				Action(func() {
 					// @TODO create target group, rules and/or service
-					time.Sleep(2000 * time.Millisecond)
+					time.Sleep(100 * time.Millisecond)
 
 					var (
 						targetGroup   aws.TargetGroup
