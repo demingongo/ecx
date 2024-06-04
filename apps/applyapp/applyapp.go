@@ -300,7 +300,16 @@ func Run() {
 
 					// create target group
 					if flow.TargetGroup != "" {
-						targetGroup, err = aws.CreateTargetGroup(flow.TargetGroup)
+						if strings.HasPrefix(flow.TargetGroup, "ref:") {
+							key := flow.TargetGroup[4:]
+							targetGroup = refs.TargetGroups[key]
+							if targetGroup.TargetGroupArn == "" {
+								err = fmt.Errorf("ecx - could not find target group reference \"%s\"", key)
+								return
+							}
+						} else {
+							targetGroup, err = aws.CreateTargetGroup(flow.TargetGroup)
+						}
 					}
 					if err != nil {
 						return
