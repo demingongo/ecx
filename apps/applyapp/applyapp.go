@@ -364,6 +364,7 @@ func Run() {
 							}
 						}
 
+						// @TODO add healthCheckGracePeriodSeconds
 						_, err = aws.CreateService(flow.Service, aws.ServiceLoadBalancer{
 							TargetGroupArn: targetGroup.TargetGroupArn,
 							ContainerName:  containerName,
