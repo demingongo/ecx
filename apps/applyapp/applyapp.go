@@ -223,7 +223,7 @@ func Run() {
 							}
 							loading.Title(fmt.Sprintf(" listener: %s - rule: %s", listener.Key, rule.Value))
 							// @TODO add listener arn
-							_, err = aws.CreateRule(rule.Value, ruleDestination)
+							_, err = aws.CreateRule2(rule.Value, ruleDestination, resp.ListenerArn)
 							if err != nil {
 								break
 							}

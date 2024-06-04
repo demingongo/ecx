@@ -25,3 +25,24 @@ func CreateRule(filepath string, targetGroupArn string) (string, error) {
 
 	return string(stdout), err
 }
+
+func CreateRule2(filepath string, targetGroupArn string, listenerArn string) (string, error) {
+	var args []string
+	args = append(args, "elbv2", "create-rule", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
+	if targetGroupArn != "" {
+		args = append(args, "--action", fmt.Sprintf("Type=forward,TargetGroupArn=%s", targetGroupArn))
+	}
+	if listenerArn != "" {
+		args = append(args, "--listener-arn", listenerArn)
+	}
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(1)
+		return strings.Join(args, " "), nil
+	}
+
+	var resp any
+	stdout, err := execAWS(args, &resp)
+
+	return string(stdout), err
+}
