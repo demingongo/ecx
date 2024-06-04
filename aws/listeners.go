@@ -13,7 +13,7 @@ type Listener struct {
 
 func CreateListener(filepath string, loadBalancerArn string, targetGroupArn string) (Listener, error) {
 	var args []string
-	args = append(args, "elbv2", "create-listener", "--cli-input-json", filepath, "--output", "json")
+	args = append(args, "elbv2", "create-listener", "--cli-input-json", fmt.Sprintf("file://%s", filepath), "--output", "json")
 	args = append(args, "--query", "Listeners[0].{ListenerArn: ListenerArn}")
 	if loadBalancerArn != "" {
 		args = append(args, "--load-balancer-arn", loadBalancerArn)

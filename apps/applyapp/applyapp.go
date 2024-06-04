@@ -30,11 +30,22 @@ type LoadBalancer struct {
 	Value string `yaml:"value"`
 }
 
-type Listeners struct {
+type Rule struct {
+	TargetGroup string `yaml:"targetGroup"`
+	Value       string `yaml:"value"`
+}
+
+type Listener struct {
 	Key          string `yaml:"key"`
 	Value        string `yaml:"value"`
 	LoadBalancer string `yaml:"loadBalancer"`
 	TargetGroup  string `yaml:"targetGroup"`
+	Rules        []Rule `yaml:"rules"`
+}
+
+type TargetGroup struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
 }
 
 type Config struct {
@@ -44,7 +55,8 @@ type Config struct {
 	TaskDefinitions []string       `yaml:"taskDefinitions"`
 	Flows           []Flow         `yaml:"flows"`
 	LoadBalancers   []LoadBalancer `yaml:"loadBalancers"`
-	Listeners       []Listeners    `yaml:"listeners"`
+	Listeners       []Listener     `yaml:"listeners"`
+	TargetGroups    []TargetGroup  `yaml:"targetGroups"`
 }
 
 func (c *Config) loadConfig() *Config {
@@ -108,6 +120,33 @@ func Run() {
 	// references
 	refs := createConfigRefs()
 
+	// @TODO targetGroups
+	if len(config.TargetGroups) > 0 {
+		logger.Debugf("TargetGroups: %v", config.TargetGroups)
+		for _, targetGroup := range config.TargetGroups {
+			if targetGroup.Value != "" {
+				var (
+					err  error
+					resp aws.TargetGroup
+				)
+				_ = spinner.New().Type(spinner.MiniDot).
+					Title(fmt.Sprintf(" target group: %s", targetGroup.Key)).
+					Action(func() {
+						// create listener
+						resp, err = aws.CreateTargetGroup(targetGroup.Value)
+					}).
+					Run()
+				if err != nil {
+					logger.Fatalf("CreateLoadBalancer: %v", err)
+				}
+				if targetGroup.Key != "" && resp.TargetGroupArn != "" {
+					refs.TargetGroups[targetGroup.Key] = resp
+				}
+				fmt.Printf("target group: %s\n", targetGroup.Key)
+			}
+		}
+	}
+
 	// @TODO loadBalancers
 	if len(config.LoadBalancers) > 0 {
 		logger.Debugf("Load balancers: %v", config.LoadBalancers)
@@ -141,10 +180,11 @@ func Run() {
 		for _, listener := range config.Listeners {
 			if listener.Value != "" {
 				var (
-					err  error
-					resp aws.Listener
+					err     error
+					resp    aws.Listener
+					loading *spinner.Spinner
 				)
-				_ = spinner.New().Type(spinner.MiniDot).
+				loading = spinner.New().Type(spinner.MiniDot).
 					Title(fmt.Sprintf(" listener: %s", listener.Key)).
 					Action(func() {
 						var (
@@ -169,8 +209,27 @@ func Run() {
 						}
 						// create listener
 						resp, err = aws.CreateListener(listener.Value, lbArn, tgArn)
-					}).
-					Run()
+						if err != nil {
+							return
+						}
+						// create rules
+						for _, rule := range listener.Rules {
+							var ruleDestination string
+							if strings.HasPrefix(rule.TargetGroup, "ref:") {
+								key := rule.TargetGroup[4:]
+								ruleDestination = refs.TargetGroups[key].TargetGroupArn
+							} else {
+								ruleDestination = listener.TargetGroup
+							}
+							loading.Title(fmt.Sprintf(" listener: %s - rule: %s", listener.Key, rule.Value))
+							// @TODO add listener arn
+							_, err = aws.CreateRule(rule.Value, ruleDestination)
+							if err != nil {
+								break
+							}
+						}
+					})
+				_ = loading.Run()
 				if err != nil {
 					logger.Fatalf("CreateLoadBalancer: %v", err)
 				}
