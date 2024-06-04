@@ -26,11 +26,14 @@ func CreateRule(filepath string, targetGroupArn string) (string, error) {
 	return string(stdout), err
 }
 
-func CreateRule2(filepath string, targetGroupArn string, listenerArn string) (string, error) {
+func CreateRule2(filepath string, targetGroupArn string, priority int, listenerArn string) (string, error) {
 	var args []string
 	args = append(args, "elbv2", "create-rule", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
 	if targetGroupArn != "" {
 		args = append(args, "--action", fmt.Sprintf("Type=forward,TargetGroupArn=%s", targetGroupArn))
+	}
+	if priority > 0 {
+		args = append(args, "--priority", fmt.Sprintf("%d", priority))
 	}
 	if listenerArn != "" {
 		args = append(args, "--listener-arn", listenerArn)

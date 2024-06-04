@@ -31,6 +31,7 @@ type LoadBalancer struct {
 }
 
 type Rule struct {
+	Priority    int    `yaml:"priority"`
 	TargetGroup string `yaml:"targetGroup"`
 	Value       string `yaml:"value"`
 }
@@ -222,9 +223,8 @@ func Run() {
 								ruleDestination = listener.TargetGroup
 							}
 							loading.Title(fmt.Sprintf(" listener: %s - rule: %s", listener.Key, rule.Value))
-							// @TODO add priority
 							// create rule
-							_, err = aws.CreateRule2(rule.Value, ruleDestination, resp.ListenerArn)
+							_, err = aws.CreateRule2(rule.Value, ruleDestination, rule.Priority, resp.ListenerArn)
 							if err != nil {
 								break
 							}
