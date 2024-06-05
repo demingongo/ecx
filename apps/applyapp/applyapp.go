@@ -330,6 +330,9 @@ func Run() {
 							if strings.HasPrefix(listener.LoadBalancer, "ref:") {
 								key := listener.LoadBalancer[4:]
 								lbArn = refs.LoadBalancers[key].LoadBalancerArn
+								if lbArn == "" {
+									logger.Fatalf("ecx - could not find load balancer reference \"%s\"", key)
+								}
 							} else {
 								lbArn = listener.LoadBalancer
 							}
@@ -338,6 +341,9 @@ func Run() {
 							if strings.HasPrefix(listener.TargetGroup, "ref:") {
 								key := listener.TargetGroup[4:]
 								tgArn = refs.TargetGroups[key].TargetGroupArn
+								if tgArn == "" {
+									logger.Fatalf("ecx - could not find target group reference \"%s\"", key)
+								}
 							} else {
 								tgArn = listener.TargetGroup
 							}
@@ -353,8 +359,12 @@ func Run() {
 							if strings.HasPrefix(rule.TargetGroup, "ref:") {
 								key := rule.TargetGroup[4:]
 								ruleDestination = refs.TargetGroups[key].TargetGroupArn
+								if ruleDestination == "" {
+									err = fmt.Errorf("ecx - could not find target group reference \"%s\"", key)
+									break
+								}
 							} else {
-								ruleDestination = listener.TargetGroup
+								ruleDestination = rule.TargetGroup
 							}
 							loading.Title(fmt.Sprintf(" listener: %s - rule: %s", listener.Key, rule.Value))
 							// create rule
