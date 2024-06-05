@@ -96,15 +96,6 @@ func createConfigRefs() ConfigRefs {
 	return configRefs
 }
 
-func removeStringFromSlice(s []string, r string) []string {
-	for i, v := range s {
-		if v == r {
-			return append(s[:i], s[i+1:]...)
-		}
-	}
-	return s
-}
-
 func Run() {
 	logger := globals.Logger
 
@@ -139,6 +130,8 @@ func Run() {
 
 		// target group name => config targetGroup
 		var mapNameKey = make(map[string]TargetGroup)
+		// target group name => exists?
+		var mapNameExists = make(map[string]bool)
 
 		var tgNames []string
 		for _, targetGroup := range config.TargetGroups {
@@ -158,6 +151,7 @@ func Run() {
 				if tgName != "" {
 					tgNames = append(tgNames, tgName)
 					mapNameKey[tgName] = targetGroup
+					mapNameExists[tgName] = false
 				} else {
 					targetGroupsToCreate = append(targetGroupsToCreate, targetGroup)
 				}
@@ -184,15 +178,17 @@ func Run() {
 					if targetGroupConfig.Key != "" {
 						refs.TargetGroups[targetGroupConfig.Key] = targetGroup
 					}
-					removeStringFromSlice(tgNames, targetGroup.TargetGroupName)
+					mapNameExists[targetGroup.TargetGroupName] = true
 					logger.Infof("target group named \"%s\" already exists", targetGroup.TargetGroupName)
 				}
 			}
 
 			// set the rest of names to create
 			for _, tgName := range tgNames {
-				if targetGroupConfig, ok := mapNameKey[tgName]; ok {
-					targetGroupsToCreate = append(targetGroupsToCreate, targetGroupConfig)
+				if !mapNameExists[tgName] {
+					if targetGroupConfig, ok := mapNameKey[tgName]; ok {
+						targetGroupsToCreate = append(targetGroupsToCreate, targetGroupConfig)
+					}
 				}
 			}
 		}
