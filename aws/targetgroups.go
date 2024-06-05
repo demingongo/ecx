@@ -55,8 +55,8 @@ func DescribeTargetGroupsWithNames(names []string) ([]TargetGroup, error) {
 	if viper.GetBool("dummy") {
 		sleep(2)
 		if len(names) > 0 {
-			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/" + names[0] + "/73e2d6bc24d8a067"
 			name := names[0]
+			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/" + name + "/73e2d6bc24d8a067"
 			result = append(result, TargetGroup{TargetGroupArn: arn, TargetGroupName: name})
 		}
 		return result, nil

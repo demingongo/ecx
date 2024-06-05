@@ -13,6 +13,31 @@ type LoadBalancer struct {
 	LoadBalancerArn  string `json:"LoadBalancerArn"`
 }
 
+func DescribeLoadBalancersWithNames(names []string) ([]LoadBalancer, error) {
+	result := []LoadBalancer{}
+	var args []string
+	args = append(args, "elbv2", "describe-load-balancers", "--output", "json", "--no-paginate")
+	args = append(args, "--query", "LoadBalancers[*].{LoadBalancerName: LoadBalancerName, Type: Type, LoadBalancerArn: LoadBalancerArn}")
+	if len(names) > 0 {
+		args = append(args, "--load-balancer-names")
+		args = append(args, names...)
+	}
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(2)
+		if len(names) > 0 {
+			name := names[0]
+			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/" + name + "/50dc6c495c0c9188"
+			result = append(result, LoadBalancer{LoadBalancerArn: arn, LoadBalancerName: name, Type: "application"})
+		}
+		return result, nil
+	}
+
+	_, err := execAWS(args, &result)
+
+	return result, err
+}
+
 func CreateLoadBalancer(filepath string) (LoadBalancer, error) {
 	var args []string
 	args = append(args, "elbv2", "create-load-balancer", "--cli-input-json", fmt.Sprintf("file://%s", filepath), "--output", "json")
@@ -22,7 +47,7 @@ func CreateLoadBalancer(filepath string) (LoadBalancer, error) {
 		sleep(1)
 		return LoadBalancer{
 			Type:             "application",
-			LoadBalancerArn:  "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/my-load-balancer/50dc6c495c0c9188",
+			LoadBalancerArn:  "arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/dummy-load-balancer/50dc6c495c0c9188",
 			LoadBalancerName: "my-load-balancer",
 		}, nil
 	}

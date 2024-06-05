@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/huh/spinner"
 	"github.com/demingongo/ecx/aws"
@@ -127,7 +126,6 @@ func Run() {
 		logger.Debugf("TargetGroups: %v", config.TargetGroups)
 		// list of target groups to create
 		var targetGroupsToCreate []TargetGroup
-
 		// target group name => config targetGroup
 		var mapNameKey = make(map[string]TargetGroup)
 		// target group name => exists?
@@ -220,7 +218,74 @@ func Run() {
 	// @TODO loadBalancers
 	if len(config.LoadBalancers) > 0 {
 		logger.Debugf("Load balancers: %v", config.LoadBalancers)
+		// list of target groups to create
+		var loadBalancersToCreate []LoadBalancer
+		// load balancer name => config LoadBalancer
+		var mapNameKey = make(map[string]LoadBalancer)
+		// load balancer name => exists?
+		var mapNameExists = make(map[string]bool)
+
+		var names []string
 		for _, loadBalancer := range config.LoadBalancers {
+			if loadBalancer.Value != "" {
+				var (
+					err error
+				)
+				// get name from file
+				tgConf := viper.New()
+				tgConf.SetConfigFile(loadBalancer.Value)
+				err = tgConf.ReadInConfig()
+				if err != nil {
+					logger.Fatalf("checking loadbalancer %s: %v", loadBalancer.Key, err)
+				}
+
+				lbName := tgConf.GetString("LoadBalancerName")
+				if lbName != "" {
+					names = append(names, lbName)
+					mapNameKey[lbName] = loadBalancer
+					mapNameExists[lbName] = false
+				} else {
+					loadBalancersToCreate = append(loadBalancersToCreate, loadBalancer)
+				}
+			}
+		}
+
+		if len(names) > 0 {
+			var (
+				loadBalancers []aws.LoadBalancer
+				err           error
+			)
+			_ = spinner.New().Type(spinner.Pulse).
+				Title(" DescribeLoadBalancersWithNames").
+				Action(func() {
+					loadBalancers, err = aws.DescribeLoadBalancersWithNames(names)
+				}).
+				Run()
+			if err != nil {
+				logger.Fatalf("DescribeLoadBalancersWithNames: %v", err)
+			}
+			for _, loadBalancer := range loadBalancers {
+				if targetGroupConfig, ok := mapNameKey[loadBalancer.LoadBalancerName]; ok {
+					// load balancer with that name exists so reference it
+					if targetGroupConfig.Key != "" {
+						refs.LoadBalancers[targetGroupConfig.Key] = loadBalancer
+					}
+					mapNameExists[loadBalancer.LoadBalancerName] = true
+					logger.Infof("load balancer named \"%s\" already exists", loadBalancer.LoadBalancerName)
+				}
+			}
+
+			// set the rest of names to create
+			for _, lbName := range names {
+				if !mapNameExists[lbName] {
+					if loadBalancerConfig, ok := mapNameKey[lbName]; ok {
+						loadBalancersToCreate = append(loadBalancersToCreate, loadBalancerConfig)
+					}
+				}
+			}
+		}
+
+		for _, loadBalancer := range loadBalancersToCreate {
 			if loadBalancer.Value != "" {
 				var (
 					err  error
@@ -359,7 +424,6 @@ func Run() {
 				Title(fmt.Sprintf(" flow: %v", flow)).
 				Action(func() {
 					// @TODO create target group, rules and/or service
-					time.Sleep(100 * time.Millisecond)
 
 					var (
 						targetGroup   aws.TargetGroup
