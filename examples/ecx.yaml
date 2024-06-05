@@ -1,0 +1,66 @@
+# prerequires: have the ecs cluster
+# and its capacity providers
+
+# header
+api: ecx
+apiVersion: 0.1
+
+# elbv2 target groups
+#
+# If a target group already exists with the same
+# name, it won't create it and will use the already
+# existing as a reference
+targetGroups:
+  - key: tg-app
+    value: targetgroups/targetgroup.json
+  - key: tg-app2
+    value: targetgroups/targetgroup2.json
+
+# elbv2 load balancers
+loadBalancers:
+  - key: alb
+    value: loadbalancers/alb.json
+
+# elbv2 listeners
+listeners:
+  - key: http-alb
+    value: listeners/httplistener.json
+    loadBalancer: ref:alb
+    targetGroup: ref:tg-app
+    rules:
+      - value: rules/rule.json
+        priority: 2
+        targetGroup: ref:tg-app
+      - value: rules/rule.json
+        targetGroup: ref:tg-app
+
+# flows:
+#
+# A flow could be
+# - rules, target group and service
+# - rules and target group
+# - target group and service
+# - target group
+# - or service
+#
+# If you specify a target group for a service,
+# that service should have a container port mapping 
+# named "http" in its task definition.
+flows:
+  - name: app-test-flow
+    service: services/service.json
+    targetGroup: ref:tg-app
+    healthCheckGracePeriodSeconds: 300
+
+
+# cloudwatch log groups
+#logGroups:
+#  - group: /etc/app-test
+#    retention: 1
+#  - group: /etc/app2
+
+# ecs task definitions
+#taskDefinitions:
+#  - taskdefinitions/taskdefinition.json
+#  - taskdefinitions/taskdefinition2.json
+  
