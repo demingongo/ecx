@@ -43,6 +43,36 @@ func DescribeTargetGroups() ([]TargetGroup, error) {
 	return result, nil
 }
 
+func DescribeTargetGroupsWithNames(names []string) ([]TargetGroup, error) {
+	result := []TargetGroup{}
+	var args []string
+	args = append(args, "elbv2", "describe-target-groups", "--output", "json", "--no-paginate")
+	if len(names) > 0 {
+		args = append(args, "--names")
+		args = append(args, names...)
+	}
+	log.Debug(args)
+	if viper.GetBool("dummy") {
+		sleep(2)
+		if len(names) > 0 {
+			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/dummy-0/73e2d6bc24d8a067"
+			name := names[0]
+			result = append(result, TargetGroup{TargetGroupArn: arn, TargetGroupName: name})
+		}
+		return result, nil
+	}
+
+	var resp describeTargetGroupsOutput
+	_, err := execAWS(args, &resp)
+	if err != nil {
+		return result, err
+	}
+
+	result = resp.TargetGroups
+
+	return result, nil
+}
+
 func CreateTargetGroup(filepath string) (TargetGroup, error) {
 	var result TargetGroup
 	var args []string

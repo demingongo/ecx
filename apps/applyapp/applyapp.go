@@ -96,6 +96,15 @@ func createConfigRefs() ConfigRefs {
 	return configRefs
 }
 
+func removeStringFromSlice(s []string, r string) []string {
+	for i, v := range s {
+		if v == r {
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return s
+}
+
 func Run() {
 	logger := globals.Logger
 
@@ -125,7 +134,70 @@ func Run() {
 	// @TODO targetGroups
 	if len(config.TargetGroups) > 0 {
 		logger.Debugf("TargetGroups: %v", config.TargetGroups)
+		// list of target groups to create
+		var targetGroupsToCreate []TargetGroup
+
+		// target group name => config targetGroup
+		var mapNameKey = make(map[string]TargetGroup)
+
+		var tgNames []string
 		for _, targetGroup := range config.TargetGroups {
+			if targetGroup.Value != "" {
+				var (
+					err error
+				)
+				// get name from file
+				tgConf := viper.New()
+				tgConf.SetConfigFile(targetGroup.Value)
+				err = tgConf.ReadInConfig()
+				if err != nil {
+					logger.Fatalf("checking target group %s: %v", targetGroup.Key, err)
+				}
+
+				tgName := tgConf.GetString("Name")
+				if tgName != "" {
+					tgNames = append(tgNames, tgName)
+					mapNameKey[tgName] = targetGroup
+				} else {
+					targetGroupsToCreate = append(targetGroupsToCreate, targetGroup)
+				}
+			}
+		}
+
+		if len(tgNames) > 0 {
+			var (
+				targetGroups []aws.TargetGroup
+				err          error
+			)
+			_ = spinner.New().Type(spinner.Pulse).
+				Title(" DescribeTargetGroupsWithNames").
+				Action(func() {
+					targetGroups, err = aws.DescribeTargetGroupsWithNames(tgNames)
+				}).
+				Run()
+			if err != nil {
+				logger.Fatalf("DescribeTargetGroupsWithNames: %v", err)
+			}
+			for _, targetGroup := range targetGroups {
+				if targetGroupConfig, ok := mapNameKey[targetGroup.TargetGroupName]; ok {
+					// target group with that name exists so reference it
+					if targetGroupConfig.Key != "" {
+						refs.TargetGroups[targetGroupConfig.Key] = targetGroup
+					}
+					removeStringFromSlice(tgNames, targetGroup.TargetGroupName)
+					logger.Infof("target group named \"%s\" already exists", targetGroup.TargetGroupName)
+				}
+			}
+
+			// set the rest of names to create
+			for _, tgName := range tgNames {
+				if targetGroupConfig, ok := mapNameKey[tgName]; ok {
+					targetGroupsToCreate = append(targetGroupsToCreate, targetGroupConfig)
+				}
+			}
+		}
+
+		for _, targetGroup := range targetGroupsToCreate {
 			if targetGroup.Value != "" {
 				var (
 					err  error
@@ -134,12 +206,12 @@ func Run() {
 				_ = spinner.New().Type(spinner.MiniDot).
 					Title(fmt.Sprintf(" target group: %s", targetGroup.Key)).
 					Action(func() {
-						// create listener
+						// create target group
 						resp, err = aws.CreateTargetGroup(targetGroup.Value)
 					}).
 					Run()
 				if err != nil {
-					logger.Fatalf("CreateLoadBalancer: %v", err)
+					logger.Fatalf("CreateTargetGroup: %v", err)
 				}
 				if targetGroup.Key != "" && resp.TargetGroupArn != "" {
 					refs.TargetGroups[targetGroup.Key] = resp
@@ -233,7 +305,7 @@ func Run() {
 					})
 				_ = loading.Run()
 				if err != nil {
-					logger.Fatalf("CreateLoadBalancer: %v", err)
+					logger.Fatalf("CreateListener: %v", err)
 				}
 				if listener.Key != "" && resp.ListenerArn != "" {
 					refs.Listeners[listener.Key] = resp
