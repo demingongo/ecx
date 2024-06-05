@@ -25,13 +25,19 @@ type Service struct {
 	Deployments []Deployment `json:"deployments"`
 }
 
-func CreateService(filepath string, loadBalancer ServiceLoadBalancer) (string, error) {
+func CreateService(filepath string, loadBalancer ServiceLoadBalancer, healthCheckGracePeriodSeconds int) (string, error) {
 	var args []string
 	args = append(args, "ecs", "create-service", "--output", "json", "--cli-input-json", fmt.Sprintf("file://%s", filepath))
 	if loadBalancer.TargetGroupArn != "" && loadBalancer.ContainerName != "" {
 		args = append(args, "--load-balancers", fmt.Sprintf(
 			"targetGroupArn=%s,containerName=%s,containerPort=%d",
 			loadBalancer.TargetGroupArn, loadBalancer.ContainerName, loadBalancer.ContainerPort,
+		))
+	}
+	if healthCheckGracePeriodSeconds > 0 {
+		args = append(args, "--health-check-grace-period-seconds", fmt.Sprintf(
+			"%d",
+			healthCheckGracePeriodSeconds,
 		))
 	}
 	log.Debug(args)

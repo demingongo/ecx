@@ -262,7 +262,7 @@ func process(logger *log.Logger) {
 					TargetGroupArn: config.targetGroup.Arn,
 					ContainerName:  config.containerName,
 					ContainerPort:  config.containerPort,
-				})
+				}, 0)
 			}).
 			Run()
 		if err != nil {

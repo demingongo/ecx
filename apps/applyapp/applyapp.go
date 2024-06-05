@@ -19,10 +19,11 @@ type LogGroup struct {
 }
 
 type Flow struct {
-	Name        string   `yaml:"name"`
-	Service     string   `yaml:"service"`
-	TargetGroup string   `yaml:"targetGroup"`
-	Rules       []string `yaml:"rules"`
+	Name                          string   `yaml:"name"`
+	Service                       string   `yaml:"service"`
+	TargetGroup                   string   `yaml:"targetGroup"`
+	HealthCheckGracePeriodSeconds int      `yaml:"healthCheckGracePeriodSeconds"`
+	Rules                         []string `yaml:"rules"`
 }
 
 type LoadBalancer struct {
@@ -364,12 +365,11 @@ func Run() {
 							}
 						}
 
-						// @TODO add healthCheckGracePeriodSeconds
 						_, err = aws.CreateService(flow.Service, aws.ServiceLoadBalancer{
 							TargetGroupArn: targetGroup.TargetGroupArn,
 							ContainerName:  containerName,
 							ContainerPort:  containerPort,
-						})
+						}, flow.HealthCheckGracePeriodSeconds)
 					}
 				}).
 				Run()
