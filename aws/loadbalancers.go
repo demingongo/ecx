@@ -17,9 +17,9 @@ func DescribeLoadBalancersWithNames(names []string) ([]LoadBalancer, error) {
 	result := []LoadBalancer{}
 	var args []string
 	args = append(args, "elbv2", "describe-load-balancers", "--output", "json", "--no-paginate")
-	args = append(args, "--query", "LoadBalancers[*].{LoadBalancerName: LoadBalancerName, Type: Type, LoadBalancerArn: LoadBalancerArn}")
+	args = append(args, "--query", "LoadBalancers[*].{LoadBalancerName:LoadBalancerName,Type:Type,LoadBalancerArn:LoadBalancerArn}")
 	if len(names) > 0 {
-		args = append(args, "--load-balancer-names")
+		args = append(args, "--names")
 		args = append(args, names...)
 	}
 	log.Debug(args)
@@ -41,7 +41,7 @@ func DescribeLoadBalancersWithNames(names []string) ([]LoadBalancer, error) {
 func CreateLoadBalancer(filepath string) (LoadBalancer, error) {
 	var args []string
 	args = append(args, "elbv2", "create-load-balancer", "--cli-input-json", fmt.Sprintf("file://%s", filepath), "--output", "json")
-	args = append(args, "--query", "LoadBalancers[0].{LoadBalancerName: LoadBalancerName, Type: Type, LoadBalancerArn: LoadBalancerArn}")
+	args = append(args, "--query", "LoadBalancers[0].{LoadBalancerName:LoadBalancerName,Type:Type,LoadBalancerArn:LoadBalancerArn}")
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(1)
