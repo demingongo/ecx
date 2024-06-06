@@ -124,79 +124,42 @@ func Run() {
 	// @TODO targetGroups
 	if len(config.TargetGroups) > 0 {
 		logger.Debugf("TargetGroups: %v", config.TargetGroups)
-		// list of target groups to create
-		var targetGroupsToCreate []TargetGroup
-		// target group name => config targetGroup
-		var mapNameKey = make(map[string]TargetGroup)
-		// target group name => exists?
-		var mapNameExists = make(map[string]bool)
-
-		var tgNames []string
 		for _, targetGroup := range config.TargetGroups {
-			if targetGroup.Value != "" {
-				var (
-					err error
-				)
-				// get name from file
-				tgConf := viper.New()
-				tgConf.SetConfigFile(targetGroup.Value)
-				err = tgConf.ReadInConfig()
-				if err != nil {
-					logger.Fatalf("checking target group %s: %v", targetGroup.Key, err)
-				}
-
-				tgName := tgConf.GetString("Name")
-				if tgName != "" {
-					tgNames = append(tgNames, tgName)
-					mapNameKey[tgName] = targetGroup
-					mapNameExists[tgName] = false
-				} else {
-					targetGroupsToCreate = append(targetGroupsToCreate, targetGroup)
-				}
-			}
-		}
-
-		if len(tgNames) > 0 {
-			var (
-				targetGroups []aws.TargetGroup
-				err          error
-			)
-			_ = spinner.New().Type(spinner.Pulse).
-				Title(" DescribeTargetGroupsWithNames").
-				Action(func() {
-					targetGroups, err = aws.DescribeTargetGroupsWithNames(tgNames)
-				}).
-				Run()
-			if err != nil {
-				logger.Fatalf("DescribeTargetGroupsWithNames: %v", err)
-			}
-			for _, targetGroup := range targetGroups {
-				if targetGroupConfig, ok := mapNameKey[targetGroup.TargetGroupName]; ok {
-					// target group with that name exists so reference it
-					if targetGroupConfig.Key != "" {
-						refs.TargetGroups[targetGroupConfig.Key] = targetGroup
-					}
-					mapNameExists[targetGroup.TargetGroupName] = true
-					logger.Infof("target group named \"%s\" already exists", targetGroup.TargetGroupName)
-				}
-			}
-
-			// set the rest of names to create
-			for _, tgName := range tgNames {
-				if !mapNameExists[tgName] {
-					if targetGroupConfig, ok := mapNameKey[tgName]; ok {
-						targetGroupsToCreate = append(targetGroupsToCreate, targetGroupConfig)
-					}
-				}
-			}
-		}
-
-		for _, targetGroup := range targetGroupsToCreate {
 			if targetGroup.Value != "" {
 				var (
 					err  error
 					resp aws.TargetGroup
 				)
+				// get name from file
+				content := viper.New()
+				content.SetConfigFile(targetGroup.Value)
+				err = content.ReadInConfig()
+				if err != nil {
+					logger.Fatalf("checking target group %s: %v", targetGroup.Key, err)
+				}
+				name := content.GetString("Name")
+				if name != "" {
+					found := false
+					_ = spinner.New().Type(spinner.Pulse).
+						Title(fmt.Sprintf(" DescribeTargetGroupsWithNames %s", name)).
+						Action(func() {
+							// do not handle error below as aws cli
+							// returns error if one name is not found
+							results, _ := aws.DescribeTargetGroupsWithNames([]string{name})
+							if len(results) > 0 {
+								if targetGroup.Key != "" {
+									refs.TargetGroups[targetGroup.Key] = results[0]
+								}
+								found = true
+							}
+						}).
+						Run()
+					if found {
+						logger.Infof("target group named \"%s\" already exists", name)
+						continue
+					}
+				}
+
 				_ = spinner.New().Type(spinner.MiniDot).
 					Title(fmt.Sprintf(" target group: %s", targetGroup.Key)).
 					Action(func() {
@@ -218,79 +181,42 @@ func Run() {
 	// @TODO loadBalancers
 	if len(config.LoadBalancers) > 0 {
 		logger.Debugf("Load balancers: %v", config.LoadBalancers)
-		// list of target groups to create
-		var loadBalancersToCreate []LoadBalancer
-		// load balancer name => config LoadBalancer
-		var mapNameKey = make(map[string]LoadBalancer)
-		// load balancer name => exists?
-		var mapNameExists = make(map[string]bool)
-
-		var names []string
 		for _, loadBalancer := range config.LoadBalancers {
-			if loadBalancer.Value != "" {
-				var (
-					err error
-				)
-				// get name from file
-				tgConf := viper.New()
-				tgConf.SetConfigFile(loadBalancer.Value)
-				err = tgConf.ReadInConfig()
-				if err != nil {
-					logger.Fatalf("checking loadbalancer %s: %v", loadBalancer.Key, err)
-				}
-
-				lbName := tgConf.GetString("LoadBalancerName")
-				if lbName != "" {
-					names = append(names, lbName)
-					mapNameKey[lbName] = loadBalancer
-					mapNameExists[lbName] = false
-				} else {
-					loadBalancersToCreate = append(loadBalancersToCreate, loadBalancer)
-				}
-			}
-		}
-
-		if len(names) > 0 {
-			var (
-				loadBalancers []aws.LoadBalancer
-				err           error
-			)
-			_ = spinner.New().Type(spinner.Pulse).
-				Title(" DescribeLoadBalancersWithNames").
-				Action(func() {
-					loadBalancers, err = aws.DescribeLoadBalancersWithNames(names)
-				}).
-				Run()
-			if err != nil {
-				logger.Fatalf("DescribeLoadBalancersWithNames: %v", err)
-			}
-			for _, loadBalancer := range loadBalancers {
-				if targetGroupConfig, ok := mapNameKey[loadBalancer.LoadBalancerName]; ok {
-					// load balancer with that name exists so reference it
-					if targetGroupConfig.Key != "" {
-						refs.LoadBalancers[targetGroupConfig.Key] = loadBalancer
-					}
-					mapNameExists[loadBalancer.LoadBalancerName] = true
-					logger.Infof("load balancer named \"%s\" already exists", loadBalancer.LoadBalancerName)
-				}
-			}
-
-			// set the rest of names to create
-			for _, lbName := range names {
-				if !mapNameExists[lbName] {
-					if loadBalancerConfig, ok := mapNameKey[lbName]; ok {
-						loadBalancersToCreate = append(loadBalancersToCreate, loadBalancerConfig)
-					}
-				}
-			}
-		}
-
-		for _, loadBalancer := range loadBalancersToCreate {
 			if loadBalancer.Value != "" {
 				var (
 					err  error
 					resp aws.LoadBalancer
 				)
+				// get name from file
+				content := viper.New()
+				content.SetConfigFile(loadBalancer.Value)
+				err = content.ReadInConfig()
+				if err != nil {
+					logger.Fatalf("checking load balancer %s: %v", loadBalancer.Key, err)
+				}
+				name := content.GetString("LoadBalancerName")
+				if name != "" {
+					found := false
+					_ = spinner.New().Type(spinner.Pulse).
+						Title(fmt.Sprintf(" DescribeLoadBalancersWithNames %s", name)).
+						Action(func() {
+							// do not handle error below as aws cli
+							// returns error if one name is not found
+							results, _ := aws.DescribeLoadBalancersWithNames([]string{name})
+							if len(results) > 0 {
+								if loadBalancer.Key != "" {
+									refs.LoadBalancers[loadBalancer.Key] = results[0]
+								}
+								found = true
+							}
+						}).
+						Run()
+					if found {
+						logger.Infof("load balancer named \"%s\" already exists", name)
+						continue
+					}
+				}
+
 				_ = spinner.New().Type(spinner.MiniDot).
 					Title(fmt.Sprintf(" load balancer: %s", loadBalancer.Key)).
 					Action(func() {

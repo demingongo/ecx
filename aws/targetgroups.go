@@ -54,12 +54,15 @@ func DescribeTargetGroupsWithNames(names []string) ([]TargetGroup, error) {
 	log.Debug(args)
 	if viper.GetBool("dummy") {
 		sleep(2)
-		if len(names) > 0 {
+		var err error
+		if len(names) == 1 && names[0] == "my-targets2" {
 			name := names[0]
 			arn := "arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/" + name + "/73e2d6bc24d8a067"
 			result = append(result, TargetGroup{TargetGroupArn: arn, TargetGroupName: name})
+		} else {
+			err = fmt.Errorf("target group not found")
 		}
-		return result, nil
+		return result, err
 	}
 
 	var resp describeTargetGroupsOutput
