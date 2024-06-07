@@ -47,10 +47,13 @@ listeners:
 # that service should have a container port mapping 
 # named "http" in its task definition.
 flows:
-  - name: app-test-flow
-    service: services/service.json
+  - service: services/service.json
     targetGroup: ref:tg-app
     healthCheckGracePeriodSeconds: 300
+    rules:
+      - value: rules/rule.json
+        priority: 2
+        listener: ref:http-alb
 
 
 # cloudwatch log groups

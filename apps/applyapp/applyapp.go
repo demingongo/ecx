@@ -17,12 +17,19 @@ type LogGroup struct {
 	Retention int    `yaml:"retention"`
 }
 
+type FlowRule struct {
+	Listener    string `yaml:"listener"`
+	Priority    int    `yaml:"priority"`
+	TargetGroup string `yaml:"targetGroup"`
+	Value       string `yaml:"value"`
+}
+
 type Flow struct {
-	Name                          string   `yaml:"name"`
-	Service                       string   `yaml:"service"`
-	TargetGroup                   string   `yaml:"targetGroup"`
-	HealthCheckGracePeriodSeconds int      `yaml:"healthCheckGracePeriodSeconds"`
-	Rules                         []string `yaml:"rules"`
+	Name                          string     `yaml:"name"`
+	Service                       string     `yaml:"service"`
+	TargetGroup                   string     `yaml:"targetGroup"`
+	HealthCheckGracePeriodSeconds int        `yaml:"healthCheckGracePeriodSeconds"`
+	Rules                         []FlowRule `yaml:"rules"`
 }
 
 type LoadBalancer struct {
@@ -386,8 +393,18 @@ func Run() {
 
 					// create rules
 					if targetGroup.TargetGroupArn != "" && len(flow.Rules) > 0 {
+						logger.Info("letsgoooooo")
 						for _, rule := range flow.Rules {
-							_, err = aws.CreateRule(rule, targetGroup.TargetGroupArn)
+							var listenerArn string = rule.Listener
+							if strings.HasPrefix(listenerArn, "ref:") {
+								key := listenerArn[4:]
+								listenerArn = refs.Listeners[key].ListenerArn
+								if listenerArn == "" {
+									err = fmt.Errorf("ecx - could not find listener reference \"%s\"", key)
+									break
+								}
+							}
+							_, err = aws.CreateRule2(rule.Value, targetGroup.TargetGroupArn, rule.Priority, listenerArn)
 							if err != nil {
 								break
 							}
