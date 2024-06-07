@@ -180,7 +180,7 @@ func Run() {
 
 	// @TODO loadBalancers
 	if len(config.LoadBalancers) > 0 {
-		logger.Debugf("Load balancers: %v", config.LoadBalancers)
+		logger.Debugf("LoadBalancers: %v", config.LoadBalancers)
 		for _, loadBalancer := range config.LoadBalancers {
 			if loadBalancer.Value != "" {
 				var (
@@ -194,7 +194,7 @@ func Run() {
 				if err != nil {
 					logger.Fatalf("checking load balancer %s: %v", loadBalancer.Key, err)
 				}
-				name := content.GetString("LoadBalancerName")
+				name := content.GetString("Name")
 				if name != "" {
 					found := false
 					_ = spinner.New().Type(spinner.Pulse).
