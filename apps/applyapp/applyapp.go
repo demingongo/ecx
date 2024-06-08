@@ -393,7 +393,6 @@ func Run() {
 
 					// create rules
 					if targetGroup.TargetGroupArn != "" && len(flow.Rules) > 0 {
-						logger.Info("letsgoooooo")
 						for _, rule := range flow.Rules {
 							var listenerArn string = rule.Listener
 							if strings.HasPrefix(listenerArn, "ref:") {
