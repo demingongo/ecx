@@ -52,7 +52,7 @@ ecx.yaml
 |     service: services/service.json                |
 |     targetGroup: targetgroups/targetgroup.json    |
 |     rules:                                        |
-|       - rules/rule.json                           |
+|       - value: rules/rule.json                    |
 +---------------------------------------------------+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
