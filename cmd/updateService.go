@@ -13,7 +13,7 @@ import (
 // updateServiceCmd represents the updateService command
 var updateServiceCmd = &cobra.Command{
 	Use:   "update-service",
-	Short: "Updates an ECS service",
+	Short: "Update an ECS service",
 	Long: `The command updates an ECS service.
 
 It helps you:

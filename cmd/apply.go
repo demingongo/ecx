@@ -73,7 +73,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// applyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	applyCmd.PersistentFlags().StringP("project", "p", "", "path to the folder with ecx.yaml")
+	applyCmd.PersistentFlags().StringP("project", "p", "", "path to the directory with ecx.yaml")
 	applyCmd.MarkPersistentFlagDirname("project")
 
 	viper.BindPFlag("project", applyCmd.PersistentFlags().Lookup("project"))
