@@ -12,7 +12,9 @@ func execAWS[T any](args []string, resp *T) ([]byte, error) {
 	if err != nil {
 		return stdout, err
 	}
-	err = json.Unmarshal(stdout, resp)
+	if len(stdout) > 0 {
+		err = json.Unmarshal(stdout, resp)
+	}
 	return stdout, err
 }
 
