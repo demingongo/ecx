@@ -15,7 +15,7 @@ type ContainerPortMapping struct {
 type PortMapping struct {
 	ContainerPort      int    `json:"containerPort"`
 	Protocol           string `json:"protocol"`
-	Name               string `json:"name"`
+	Name               string `json:"name,omitempty"`
 	HostPort           int    `json:"hostPort"`
 	AppProtocol        string `json:"appProtocol,omitempty"`
 	ContainerPortRange string `json:"containerPortRange,omitempty"`
